@@ -1,7 +1,16 @@
+<?php
+
+session_start();
+
+require_once __DIR__ . '/config/security.php';
+
+?>
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -10,15 +19,18 @@
     >
 
     <title>Carmelito's Minimercado</title>
+
     <link
         rel="icon"
         type="image/png"
         href="assets/images/logo.png"
     >
+
     <link
         rel="stylesheet"
         href="assets/css/app.css"
     >
+
 </head>
 
 <body>
@@ -26,10 +38,12 @@
     <header class="hero">
 
         <div class="hero-logo">
+
             <img
                 src="assets/images/logo.png"
                 alt="Carmelito's"
             >
+
         </div>
 
     </header>
@@ -45,15 +59,24 @@
             <div class="selection-card">
 
                 <div class="selection-title">
-                    <span class="selection-icon">👥</span>
 
-                    <strong>EQUIPE</strong>
+                    <span class="selection-icon">
+                        👥
+                    </span>
+
+                    <strong>
+                        EQUIPE
+                    </strong>
+
                 </div>
+
 
                 <select id="team">
 
                     <option value="">
+
                         Selecione a equipe
+
                     </option>
 
                 </select>
@@ -68,15 +91,24 @@
             >
 
                 <div class="selection-title">
-                    <span class="selection-icon">👤</span>
 
-                    <strong>PESSOA</strong>
+                    <span class="selection-icon">
+                        👤
+                    </span>
+
+                    <strong>
+                        PESSOA
+                    </strong>
+
                 </div>
+
 
                 <select id="person">
 
                     <option value="">
+
                         Selecione a pessoa
+
                     </option>
 
                 </select>
@@ -96,7 +128,10 @@
 
             <div class="search-box">
 
-                <span class="search-icon">⌕</span>
+                <span class="search-icon">
+                    ⌕
+                </span>
+
 
                 <input
                     type="search"
@@ -111,9 +146,13 @@
 
                 <div class="products-heading">
 
-                    <span>♻</span>
+                    <span>
+                        ♻
+                    </span>
 
-                    <h2>PRODUTOS</h2>
+                    <h2>
+                        PRODUTOS
+                    </h2>
 
                 </div>
 
@@ -141,7 +180,9 @@
                         🛒
                     </span>
 
-                    <h2>CARRINHO</h2>
+                    <h2>
+                        CARRINHO
+                    </h2>
 
                 </div>
 
@@ -157,8 +198,11 @@
                     TOTAL
                 </span>
 
+
                 <strong id="cart-total">
+
                     R$ 0,00
+
                 </strong>
 
 
@@ -168,7 +212,9 @@
                     class="submit-button"
                 >
 
-                    <span>✓</span>
+                    <span>
+                        ✓
+                    </span>
 
                     LANÇAR COMPRA
 
@@ -179,6 +225,20 @@
         </section>
 
     </main>
+
+
+    <!-- =====================================================
+         CSRF
+    ====================================================== -->
+
+    <script>
+
+        const csrfToken =
+            <?= json_encode(
+                csrf_token()
+            ) ?>;
+
+    </script>
 
 
     <script src="assets/js/app.js"></script>

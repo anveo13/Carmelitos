@@ -130,6 +130,7 @@ teamSelect.addEventListener(
             personSection.hidden =
                 true;
 
+
             personSelect.innerHTML = `
 
                 <option value="">
@@ -137,6 +138,7 @@ teamSelect.addEventListener(
                 </option>
 
             `;
+
 
             return;
 
@@ -213,6 +215,7 @@ teamSelect.addEventListener(
             alert(
                 'Não foi possível carregar as pessoas.'
             );
+
 
             personSection.hidden =
                 true;
@@ -834,7 +837,6 @@ submitPurchase.addEventListener(
         `;
 
 
-
         try {
 
 
@@ -857,13 +859,31 @@ submitPurchase.addEventListener(
 
                         },
 
+
                         body:
                             JSON.stringify({
+
+                                /*
+                                |------------------------------------------
+                                | CSRF
+                                |------------------------------------------
+                                */
+
+                                csrf_token:
+                                    csrfToken,
+
+
+                                /*
+                                |------------------------------------------
+                                | PESSOA
+                                |------------------------------------------
+                                */
 
                                 person_id:
                                     Number(
                                         personId
                                     ),
+
 
                                 /*
                                 |------------------------------------------
@@ -874,6 +894,13 @@ submitPurchase.addEventListener(
 
                                 status:
                                     'pending',
+
+
+                                /*
+                                |------------------------------------------
+                                | ITENS
+                                |------------------------------------------
+                                */
 
                                 items:
                                     items

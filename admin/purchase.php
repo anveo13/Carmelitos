@@ -8,7 +8,7 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 require_once __DIR__ . '/../config/database.php';
-
+require_once __DIR__ . '/../config/security.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -727,6 +727,9 @@ const saveButton =
 
 let cart = [];
 
+const csrfToken =
+    <?= json_encode(csrf_token()) ?>;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -1259,17 +1262,20 @@ saveButton.addEventListener(
                                 'application/json'
                         },
 
-                        body:
-                            JSON.stringify({
+                      body:
+    JSON.stringify({
 
-                                person_id:
-                                    Number(personId),
+        csrf_token:
+            csrfToken,
 
-                                status,
+        person_id:
+            Number(personId),
 
-                                items
+        status,
 
-                            })
+        items
+
+    })
 
                     }
                 );

@@ -11,9 +11,16 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
 <header class="admin-header">
 
+    <!-- =====================================================
+         MARCA
+    ====================================================== -->
+
     <div class="brand">
 
-        <a href="index.php" class="brand-link">
+        <a
+            href="index.php"
+            class="brand-link"
+        >
 
             <div class="brand-icon">
                 🛒
@@ -36,69 +43,150 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     </div>
 
 
+    <!-- =====================================================
+         NAVEGAÇÃO
+    ====================================================== -->
+
     <nav class="admin-nav">
+
 
         <a
             href="index.php"
-            class="<?= $currentPage === 'index.php' ? 'active' : '' ?>"
+            class="<?= $currentPage === 'index.php'
+                ? 'active'
+                : '' ?>"
         >
+
             📊 Dashboard
+
         </a>
 
 
         <a
             href="purchase.php"
-            class="<?= $currentPage === 'purchase.php' ? 'active' : '' ?>"
+            class="<?= $currentPage === 'purchase.php'
+                ? 'active'
+                : '' ?>"
         >
+
             🛒 Nova compra
+
         </a>
 
 
         <a
             href="purchases.php"
-            class="<?= $currentPage === 'purchases.php' ? 'active' : '' ?>"
+            class="<?= $currentPage === 'purchases.php'
+                ? 'active'
+                : '' ?>"
         >
+
             📋 Compras
+
         </a>
 
 
         <a
             href="people.php"
-            class="<?= $currentPage === 'people.php' ? 'active' : '' ?>"
+            class="<?= in_array(
+                $currentPage,
+                [
+                    'people.php',
+                    'person.php',
+                    'person-purchases.php'
+                ],
+                true
+            )
+                ? 'active'
+                : '' ?>"
         >
+
             👥 Pessoas
+
         </a>
 
 
         <a
             href="products.php"
-            class="<?= $currentPage === 'products.php' ? 'active' : '' ?>"
+            class="<?= in_array(
+                $currentPage,
+                [
+                    'products.php',
+                    'product.php'
+                ],
+                true
+            )
+                ? 'active'
+                : '' ?>"
         >
+
             📦 Produtos
+
+        </a>
+
+
+        <a
+            href="categories.php"
+            class="<?= in_array(
+                $currentPage,
+                [
+                    'categories.php',
+                    'category.php'
+                ],
+                true
+            )
+                ? 'active'
+                : '' ?>"
+        >
+
+            📂 Categorias
+
         </a>
 
 
         <a
             href="teams.php"
-            class="<?= $currentPage === 'teams.php' ? 'active' : '' ?>"
+            class="<?= in_array(
+                $currentPage,
+                [
+                    'teams.php',
+                    'team.php'
+                ],
+                true
+            )
+                ? 'active'
+                : '' ?>"
         >
+
             🏷️ Equipes
+
         </a>
+
 
     </nav>
 
 
+    <!-- =====================================================
+         USUÁRIO
+    ====================================================== -->
+
     <div class="admin-user">
 
         <span>
+
             Olá,
+
             <?= htmlspecialchars(
                 $_SESSION['admin_username']
             ) ?>
+
         </span>
 
+
         <a href="logout.php">
+
             Sair
+
         </a>
 
     </div>

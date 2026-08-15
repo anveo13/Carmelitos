@@ -26,11 +26,13 @@ if (!isset($_SESSION['admin_id'])) {
 
 /*
 |--------------------------------------------------------------------------
-| BANCO
+| BANCO + SEGURANÇA
 |--------------------------------------------------------------------------
 */
 
 require_once __DIR__ . '/../config/database.php';
+
+require_once __DIR__ . '/../config/security.php';
 
 
 /*
@@ -71,6 +73,29 @@ if (!is_array($input)) {
     echo json_encode([
         'success' => false,
         'message' => 'Dados inválidos.'
+    ], JSON_UNESCAPED_UNICODE);
+
+    exit;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| CSRF
+|--------------------------------------------------------------------------
+*/
+
+if (
+    !csrf_validate(
+        $input['csrf_token'] ?? null
+    )
+) {
+
+    http_response_code(403);
+
+    echo json_encode([
+        'success' => false,
+        'message' => 'Solicitação inválida.'
     ], JSON_UNESCAPED_UNICODE);
 
     exit;
@@ -243,9 +268,12 @@ try {
 
 
         /*
-        | Busca o preço diretamente do banco.
+        |--------------------------------------------------------------------------
+        | BUSCAR PREÇO NO BANCO
+        |--------------------------------------------------------------------------
         |
-        | NÃO confiamos no preço enviado pelo navegador.
+        | Nunca confiamos no preço enviado pelo navegador.
+        |
         */
 
         $productStmt->execute([
@@ -280,13 +308,17 @@ try {
 
         $validatedItems[] = [
 
-            'product_id' => $productId,
+            'product_id' =>
+                $productId,
 
-            'quantity' => $quantity,
+            'quantity' =>
+                $quantity,
 
-            'unit_price' => $unitPrice,
+            'unit_price' =>
+                $unitPrice,
 
-            'subtotal' => $subtotal
+            'subtotal' =>
+                $subtotal
 
         ];
 
@@ -436,7 +468,9 @@ try {
     */
 
     if ($pdo->inTransaction()) {
+
         $pdo->rollBack();
+
     }
 
 

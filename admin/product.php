@@ -2,12 +2,31 @@
 
 session_start();
 
+
+/*
+|--------------------------------------------------------------------------
+| ADMINISTRADOR
+|--------------------------------------------------------------------------
+*/
+
 if (!isset($_SESSION['admin_id'])) {
+
     header('Location: login.php');
+
     exit;
+
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| BANCO + SEGURANÇA
+|--------------------------------------------------------------------------
+*/
+
 require_once __DIR__ . '/../config/database.php';
+
+require_once __DIR__ . '/../config/security.php';
 
 
 /*
@@ -39,11 +58,17 @@ $error = '';
 */
 
 $product = [
+
     'id' => null,
+
     'name' => '',
+
     'category_id' => '',
+
     'price' => '',
+
     'active' => 1
+
 ];
 
 
@@ -62,28 +87,40 @@ if ($productId) {
             category_id,
             price,
             active
+
         FROM products
+
         WHERE id = ?
+
         LIMIT 1
     ");
+
 
     $stmt->execute([
         $productId
     ]);
 
+
     $foundProduct =
-        $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->fetch(
+            PDO::FETCH_ASSOC
+        );
 
 
     if (!$foundProduct) {
 
-        header('Location: products.php');
+        header(
+            'Location: products.php'
+        );
+
         exit;
 
     }
 
 
-    $product = $foundProduct;
+    $product =
+        $foundProduct;
+
 }
 
 
@@ -95,33 +132,75 @@ if ($productId) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $submittedId = filter_var(
-        $_POST['id'] ?? null,
-        FILTER_VALIDATE_INT
-    );
 
-    $name = trim(
-        $_POST['name'] ?? ''
-    );
+    /*
+    |--------------------------------------------------------------------------
+    | VALIDAR CSRF
+    |--------------------------------------------------------------------------
+    */
 
-    $categoryId = filter_var(
-        $_POST['category_id'] ?? null,
-        FILTER_VALIDATE_INT
-    );
+    if (
+        !csrf_validate(
+            $_POST['csrf_token'] ?? null
+        )
+    ) {
 
-    $priceInput = str_replace(
-        ',',
-        '.',
-        trim($_POST['price'] ?? '')
-    );
+        http_response_code(403);
 
-    $price = filter_var(
-        $priceInput,
-        FILTER_VALIDATE_FLOAT
-    );
+        exit(
+            'Solicitação inválida.'
+        );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | DADOS DO FORMULÁRIO
+    |--------------------------------------------------------------------------
+    */
+
+    $submittedId =
+        filter_var(
+            $_POST['id'] ?? null,
+            FILTER_VALIDATE_INT
+        );
+
+
+    $name =
+        trim(
+            $_POST['name'] ?? ''
+        );
+
+
+    $categoryId =
+        filter_var(
+            $_POST['category_id'] ?? null,
+            FILTER_VALIDATE_INT
+        );
+
+
+    $priceInput =
+        str_replace(
+            ',',
+            '.',
+            trim(
+                $_POST['price'] ?? ''
+            )
+        );
+
+
+    $price =
+        filter_var(
+            $priceInput,
+            FILTER_VALIDATE_FLOAT
+        );
+
 
     $active =
-        isset($_POST['active'])
+        isset(
+            $_POST['active']
+        )
             ? 1
             : 0;
 
@@ -137,10 +216,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error =
             'Informe o nome do produto.';
 
+
     } elseif (!$categoryId) {
 
         $error =
             'Selecione uma categoria.';
+
 
     } elseif (
         $price === false ||
@@ -149,6 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $error =
             'Informe um preço válido.';
+
 
     } else {
 
@@ -166,6 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             LIMIT 1
         ");
 
+
         $stmt->execute([
             $categoryId
         ]);
@@ -175,6 +258,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $error =
                 'Categoria não encontrada.';
+
 
         } else {
 
@@ -186,6 +270,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             */
 
             if ($submittedId) {
+
 
                 $stmt = $pdo->prepare("
                     UPDATE products
@@ -200,6 +285,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     LIMIT 1
                 ");
+
 
                 $stmt->execute([
 
@@ -220,6 +306,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 ]);
 
+
                 header(
                     'Location: products.php'
                 );
@@ -236,6 +323,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             */
 
             else {
+
 
                 $stmt = $pdo->prepare("
                     INSERT INTO products
@@ -255,6 +343,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     )
                 ");
 
+
                 $stmt->execute([
 
                     $name,
@@ -271,6 +360,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $active
 
                 ]);
+
 
                 header(
                     'Location: products.php'
@@ -294,11 +384,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $product['name'] =
         $name;
 
+
     $product['category_id'] =
         $categoryId ?: '';
 
+
     $product['price'] =
         $priceInput;
+
 
     $product['active'] =
         $active;
@@ -317,6 +410,7 @@ $stmt = $pdo->query("
         id,
         name,
         active
+
     FROM categories
 
     ORDER BY
@@ -324,8 +418,11 @@ $stmt = $pdo->query("
         name ASC
 ");
 
+
 $categories =
-    $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt->fetchAll(
+        PDO::FETCH_ASSOC
+    );
 
 
 /*
@@ -335,7 +432,10 @@ $categories =
 */
 
 $isEditing =
-    !empty($product['id']);
+    !empty(
+        $product['id']
+    );
+
 
 $pageTitle =
     $isEditing
@@ -352,19 +452,34 @@ $pageTitle =
 
     <meta charset="UTF-8">
 
+
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
 
+
     <title>
-        <?= $pageTitle ?> | Carmelito's
+
+        <?= $pageTitle ?>
+
+        | Carmelito's
+
     </title>
+
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="../assets/images/logo.png"
+    >
+
 
     <link
         rel="stylesheet"
         href="admin.css"
     >
+
 
     <style>
 
@@ -443,7 +558,12 @@ $pageTitle =
 
             box-shadow:
                 0 3px 12px
-                rgba(16, 54, 30, 0.04);
+                rgba(
+                    16,
+                    54,
+                    30,
+                    0.04
+                );
         }
 
 
@@ -501,7 +621,12 @@ $pageTitle =
 
             box-shadow:
                 0 0 0 3px
-                rgba(8, 122, 61, 0.07);
+                rgba(
+                    8,
+                    122,
+                    61,
+                    0.07
+                );
         }
 
 
@@ -532,7 +657,8 @@ $pageTitle =
 
         .price-input {
 
-            padding-left: 38px !important;
+            padding-left:
+                38px !important;
         }
 
 
@@ -651,17 +777,24 @@ $pageTitle =
 
             box-shadow:
                 0 1px 3px
-                rgba(0,0,0,0.15);
+                rgba(
+                    0,
+                    0,
+                    0,
+                    0.15
+                );
         }
 
 
-        .switch input:checked + .slider {
+        .switch input:checked
+        + .slider {
 
             background: #49C83B;
         }
 
 
-        .switch input:checked + .slider::before {
+        .switch input:checked
+        + .slider::before {
 
             transform:
                 translateX(21px);
@@ -672,7 +805,8 @@ $pageTitle =
 
             margin-bottom: 20px;
 
-            padding: 13px 15px;
+            padding:
+                13px 15px;
 
             border-radius: 10px;
 
@@ -813,6 +947,7 @@ $pageTitle =
 
             </h1>
 
+
             <p>
 
                 <?= $isEditing
@@ -829,11 +964,12 @@ $pageTitle =
             href="products.php"
             class="back-link"
         >
+
             ← Voltar
+
         </a>
 
     </div>
-
 
 
     <section class="product-form-card">
@@ -844,7 +980,10 @@ $pageTitle =
             <div class="form-error">
 
                 ⚠️
-                <?= htmlspecialchars($error) ?>
+
+                <?= htmlspecialchars(
+                    $error
+                ) ?>
 
             </div>
 
@@ -855,6 +994,19 @@ $pageTitle =
             method="POST"
             autocomplete="off"
         >
+
+
+            <!-- =================================================
+                 CSRF
+            ================================================== -->
+
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="<?= htmlspecialchars(
+                    csrf_token()
+                ) ?>"
+            >
 
 
             <?php if ($isEditing): ?>
@@ -875,7 +1027,9 @@ $pageTitle =
             <div class="form-group">
 
                 <label for="name">
+
                     Nome do produto
+
                 </label>
 
 
@@ -893,11 +1047,12 @@ $pageTitle =
 
 
                 <div class="field-help">
+
                     Nome que aparecerá na tela de vendas.
+
                 </div>
 
             </div>
-
 
 
             <!-- =================================================
@@ -907,7 +1062,9 @@ $pageTitle =
             <div class="form-group">
 
                 <label for="category_id">
+
                     Categoria
+
                 </label>
 
 
@@ -918,19 +1075,29 @@ $pageTitle =
                 >
 
                     <option value="">
+
                         Selecione uma categoria
+
                     </option>
 
 
-                    <?php foreach ($categories as $category): ?>
+                    <?php foreach (
+                        $categories
+                        as $category
+                    ): ?>
 
                         <option
                             value="<?= (int) $category['id'] ?>"
-                            <?= (string) $product['category_id']
-                                === (string) $category['id']
+
+                            <?= (string)
+                                $product['category_id']
+                                ===
+                                (string)
+                                $category['id']
                                 ? 'selected'
                                 : ''
                             ?>
+
                             <?= !$category['active']
                                 ? 'disabled'
                                 : ''
@@ -955,7 +1122,6 @@ $pageTitle =
             </div>
 
 
-
             <!-- =================================================
                  PREÇO
             ================================================== -->
@@ -963,14 +1129,18 @@ $pageTitle =
             <div class="form-group">
 
                 <label for="price">
+
                     Preço
+
                 </label>
 
 
                 <div class="price-wrapper">
 
                     <span class="price-prefix">
+
                         R$
+
                     </span>
 
 
@@ -983,7 +1153,8 @@ $pageTitle =
                             str_replace(
                                 '.',
                                 ',',
-                                (string) $product['price']
+                                (string)
+                                $product['price']
                             )
                         ) ?>"
                         placeholder="0,00"
@@ -995,11 +1166,12 @@ $pageTitle =
 
 
                 <div class="field-help">
+
                     Exemplo: 5,00
+
                 </div>
 
             </div>
-
 
 
             <!-- =================================================
@@ -1011,12 +1183,17 @@ $pageTitle =
                 <div class="active-info">
 
                     <strong>
+
                         Produto ativo
+
                     </strong>
 
+
                     <span>
+
                         Produtos inativos não aparecem
                         na tela de nova compra.
+
                     </span>
 
                 </div>
@@ -1034,12 +1211,14 @@ $pageTitle =
                         ?>
                     >
 
-                    <span class="slider"></span>
+
+                    <span
+                        class="slider"
+                    ></span>
 
                 </label>
 
             </div>
-
 
 
             <!-- =================================================
@@ -1053,7 +1232,9 @@ $pageTitle =
                     href="products.php"
                     class="cancel-button"
                 >
+
                     Cancelar
+
                 </a>
 
 

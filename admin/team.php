@@ -2,12 +2,31 @@
 
 session_start();
 
+
+/*
+|--------------------------------------------------------------------------
+| ADMINISTRADOR
+|--------------------------------------------------------------------------
+*/
+
 if (!isset($_SESSION['admin_id'])) {
+
     header('Location: login.php');
+
     exit;
+
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| BANCO + SEGURANÇA
+|--------------------------------------------------------------------------
+*/
+
 require_once __DIR__ . '/../config/database.php';
+
+require_once __DIR__ . '/../config/security.php';
 
 
 /*
@@ -39,9 +58,13 @@ $error = '';
 */
 
 $team = [
+
     'id' => null,
+
     'name' => '',
+
     'active' => 1
+
 ];
 
 
@@ -63,23 +86,32 @@ if ($teamId) {
         LIMIT 1
     ");
 
+
     $stmt->execute([
         $teamId
     ]);
 
+
     $foundTeam =
-        $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->fetch(
+            PDO::FETCH_ASSOC
+        );
 
 
     if (!$foundTeam) {
 
-        header('Location: teams.php');
+        header(
+            'Location: teams.php'
+        );
+
         exit;
 
     }
 
 
-    $team = $foundTeam;
+    $team =
+        $foundTeam;
+
 }
 
 
@@ -91,17 +123,51 @@ if ($teamId) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $submittedId = filter_var(
-        $_POST['id'] ?? null,
-        FILTER_VALIDATE_INT
-    );
 
-    $name = trim(
-        $_POST['name'] ?? ''
-    );
+    /*
+    |--------------------------------------------------------------------------
+    | VALIDAR CSRF
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        !csrf_validate(
+            $_POST['csrf_token'] ?? null
+        )
+    ) {
+
+        http_response_code(403);
+
+        exit(
+            'Solicitação inválida.'
+        );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | DADOS DO FORMULÁRIO
+    |--------------------------------------------------------------------------
+    */
+
+    $submittedId =
+        filter_var(
+            $_POST['id'] ?? null,
+            FILTER_VALIDATE_INT
+        );
+
+
+    $name =
+        trim(
+            $_POST['name'] ?? ''
+        );
+
 
     $active =
-        isset($_POST['active'])
+        isset(
+            $_POST['active']
+        )
             ? 1
             : 0;
 
@@ -129,26 +195,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($submittedId) {
 
             $stmt = $pdo->prepare("
-                SELECT id
+                SELECT
+                    id
+
                 FROM teams
-                WHERE name = ?
-                AND id != ?
+
+                WHERE
+                    name = ?
+                    AND id != ?
+
                 LIMIT 1
             ");
 
+
             $stmt->execute([
+
                 $name,
+
                 $submittedId
+
             ]);
 
         } else {
 
             $stmt = $pdo->prepare("
-                SELECT id
+                SELECT
+                    id
+
                 FROM teams
+
                 WHERE name = ?
+
                 LIMIT 1
             ");
+
 
             $stmt->execute([
                 $name
@@ -156,6 +236,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         }
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | DUPLICADO
+        |--------------------------------------------------------------------------
+        */
 
         if ($stmt->fetch()) {
 
@@ -185,6 +271,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     LIMIT 1
                 ");
 
+
                 $stmt->execute([
 
                     $name,
@@ -194,6 +281,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $submittedId
 
                 ]);
+
 
                 header(
                     'Location: teams.php'
@@ -226,6 +314,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     )
                 ");
 
+
                 $stmt->execute([
 
                     $name,
@@ -233,6 +322,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $active
 
                 ]);
+
 
                 header(
                     'Location: teams.php'
@@ -256,6 +346,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $team['name'] =
         $name;
 
+
     $team['active'] =
         $active;
 
@@ -269,7 +360,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 */
 
 $isEditing =
-    !empty($team['id']);
+    !empty(
+        $team['id']
+    );
+
 
 $pageTitle =
     $isEditing
@@ -286,19 +380,34 @@ $pageTitle =
 
     <meta charset="UTF-8">
 
+
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
 
+
     <title>
-        <?= $pageTitle ?> | Carmelito's
+
+        <?= $pageTitle ?>
+
+        | Carmelito's
+
     </title>
+
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="../assets/images/logo.png"
+    >
+
 
     <link
         rel="stylesheet"
         href="admin.css"
     >
+
 
     <style>
 
@@ -385,7 +494,12 @@ $pageTitle =
 
             box-shadow:
                 0 3px 12px
-                rgba(16, 54, 30, 0.04);
+                rgba(
+                    16,
+                    54,
+                    30,
+                    0.04
+                );
         }
 
 
@@ -445,7 +559,12 @@ $pageTitle =
 
             box-shadow:
                 0 0 0 3px
-                rgba(8, 122, 61, 0.07);
+                rgba(
+                    8,
+                    122,
+                    61,
+                    0.07
+                );
         }
 
 
@@ -572,17 +691,24 @@ $pageTitle =
 
             box-shadow:
                 0 1px 3px
-                rgba(0,0,0,0.15);
+                rgba(
+                    0,
+                    0,
+                    0,
+                    0.15
+                );
         }
 
 
-        .switch input:checked + .slider {
+        .switch input:checked
+        + .slider {
 
             background: #49C83B;
         }
 
 
-        .switch input:checked + .slider::before {
+        .switch input:checked
+        + .slider::before {
 
             transform:
                 translateX(21px);
@@ -597,7 +723,8 @@ $pageTitle =
 
             margin-bottom: 20px;
 
-            padding: 13px 15px;
+            padding:
+                13px 15px;
 
             border-radius: 10px;
 
@@ -750,6 +877,7 @@ $pageTitle =
 
             </h1>
 
+
             <p>
 
                 <?= $isEditing
@@ -766,11 +894,12 @@ $pageTitle =
             href="teams.php"
             class="back-link"
         >
+
             ← Voltar
+
         </a>
 
     </div>
-
 
 
     <!-- =====================================================
@@ -785,7 +914,10 @@ $pageTitle =
             <div class="form-error">
 
                 ⚠️
-                <?= htmlspecialchars($error) ?>
+
+                <?= htmlspecialchars(
+                    $error
+                ) ?>
 
             </div>
 
@@ -796,6 +928,19 @@ $pageTitle =
             method="POST"
             autocomplete="off"
         >
+
+
+            <!-- =================================================
+                 CSRF
+            ================================================== -->
+
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="<?= htmlspecialchars(
+                    csrf_token()
+                ) ?>"
+            >
 
 
             <?php if ($isEditing): ?>
@@ -816,7 +961,9 @@ $pageTitle =
             <div class="form-group">
 
                 <label for="name">
+
                     Nome da equipe
+
                 </label>
 
 
@@ -834,11 +981,12 @@ $pageTitle =
 
 
                 <div class="field-help">
+
                     O nome deve ser único.
+
                 </div>
 
             </div>
-
 
 
             <!-- =================================================
@@ -851,12 +999,17 @@ $pageTitle =
                 <div class="active-info">
 
                     <strong>
+
                         Equipe ativa
+
                     </strong>
 
+
                     <span>
+
                         Equipes inativas não aparecem
                         nos novos cadastros de pessoas.
+
                     </span>
 
                 </div>
@@ -874,13 +1027,13 @@ $pageTitle =
                         ?>
                     >
 
+
                     <span class="slider"></span>
 
                 </label>
 
 
             </div>
-
 
 
             <!-- =================================================
@@ -894,7 +1047,9 @@ $pageTitle =
                     href="teams.php"
                     class="cancel-button"
                 >
+
                     Cancelar
+
                 </a>
 
 
