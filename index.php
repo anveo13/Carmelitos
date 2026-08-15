@@ -2,7 +2,6 @@
 <html lang="pt-BR">
 
 <head>
-
     <meta charset="UTF-8">
 
     <meta
@@ -10,70 +9,75 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Carmelitos</title>
+    <title>Carmelito's Minimercado</title>
 
     <link
         rel="stylesheet"
         href="assets/css/app.css"
     >
-
 </head>
 
 <body>
 
+    <header class="hero">
+
+        <div class="hero-logo">
+            <img
+                src="assets/images/logo.png"
+                alt="Carmelito's"
+            >
+        </div>
+
+    </header>
+
+
     <main class="app">
 
-        <header class="app-header">
 
-            <div class="logo-placeholder">
-                🛒
+        <!-- EQUIPE + PESSOA -->
+
+        <section class="selection-grid">
+
+            <div class="selection-card">
+
+                <div class="selection-title">
+                    <span class="selection-icon">👥</span>
+
+                    <strong>EQUIPE</strong>
+                </div>
+
+                <select id="team">
+
+                    <option value="">
+                        Selecione a equipe
+                    </option>
+
+                </select>
+
             </div>
 
-            <h1>Carmelitos</h1>
 
-            <p>Minimercado</p>
+            <div
+                class="selection-card"
+                id="person-section"
+                hidden
+            >
 
-        </header>
+                <div class="selection-title">
+                    <span class="selection-icon">👤</span>
 
+                    <strong>PESSOA</strong>
+                </div>
 
-        <!-- EQUIPE -->
+                <select id="person">
 
-        <section class="form-section">
+                    <option value="">
+                        Selecione a pessoa
+                    </option>
 
-            <label for="team">
-                Equipe
-            </label>
+                </select>
 
-            <select id="team">
-
-                <option value="">
-                    Selecione a equipe
-                </option>
-
-            </select>
-
-        </section>
-
-
-        <!-- PESSOA -->
-
-        <section
-            class="form-section"
-            id="person-section"
-            hidden
-        >
-
-            <label for="person">
-                Pessoa
-            </label>
-
-            <select id="person">
-
-                <option value="">
-                    Selecione a pessoa
-                </option>
-
-            </select>
+            </div>
 
         </section>
 
@@ -86,18 +90,9 @@
             hidden
         >
 
-            <div class="section-title">
-
-                <h2>Produtos</h2>
-
-            </div>
-
-
-            <!-- PESQUISA -->
-
             <div class="search-box">
 
-                <span>🔎</span>
+                <span class="search-icon">⌕</span>
 
                 <input
                     type="search"
@@ -108,9 +103,20 @@
             </div>
 
 
-            <!-- CATEGORIAS -->
+            <div class="products-card">
 
-            <div id="products-container"></div>
+                <div class="products-heading">
+
+                    <span>♻</span>
+
+                    <h2>PRODUTOS</h2>
+
+                </div>
+
+
+                <div id="products-container"></div>
+
+            </div>
 
         </section>
 
@@ -123,37 +129,50 @@
             hidden
         >
 
-            <div class="section-title">
+            <div class="cart-content">
 
-                <h2>Carrinho</h2>
+                <div class="cart-heading">
+
+                    <span class="cart-icon">
+                        🛒
+                    </span>
+
+                    <h2>CARRINHO</h2>
+
+                </div>
+
+
+                <div id="cart-items"></div>
 
             </div>
 
 
-            <div id="cart-items"></div>
+            <div class="cart-summary">
 
-
-            <div class="cart-total">
-
-                <span>Total</span>
+                <span class="total-label">
+                    TOTAL
+                </span>
 
                 <strong id="cart-total">
                     R$ 0,00
                 </strong>
 
+
+                <button
+                    type="button"
+                    id="submit-purchase"
+                    class="submit-button"
+                >
+
+                    <span>✓</span>
+
+                    LANÇAR COMPRA
+
+                </button>
+
             </div>
 
-
-            <button
-                type="button"
-                id="submit-purchase"
-                class="submit-button"
-            >
-                Lançar compra
-            </button>
-
         </section>
-
 
     </main>
 
