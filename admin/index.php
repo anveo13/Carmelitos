@@ -901,14 +901,42 @@ function getStatusLabel(status) {
 
 function getRecordLink(item) {
 
-    if (currentStatus === 'debt' && item.id) {
+    /*
+    |----------------------------------------------------------
+    | PAGO / DEVENDO
+    |----------------------------------------------------------
+    |
+    | Agora o ID recebido é o ID da compra.
+    |
+    */
 
-        return `person-purchases.php?id=${item.id}`;
+    if (
+        (
+            currentStatus === 'paid' ||
+            currentStatus === 'debt'
+        )
+        &&
+        item.id
+    ) {
+
+        return `purchase-view.php?id=${item.id}`;
 
     }
 
 
-    if (item.id) {
+    /*
+    |----------------------------------------------------------
+    | NÃO UTILIZADO
+    |----------------------------------------------------------
+    |
+    | Nesse caso o ID continua sendo o ID da pessoa.
+    |
+    */
+
+    if (
+        currentStatus === 'unused' &&
+        item.id
+    ) {
 
         return `person.php?id=${item.id}`;
 

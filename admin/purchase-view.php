@@ -9,6 +9,8 @@ if (!isset($_SESSION['admin_id'])) {
 
 require_once __DIR__ . '/../config/database.php';
 
+require_once __DIR__ . '/../config/security.php';
+
 
 /*
 |--------------------------------------------------------------------------
@@ -1041,8 +1043,13 @@ if (paymentButton) {
                             },
 
                             body: JSON.stringify({
+
+                                csrf_token:
+                                    <?= json_encode(csrf_token()) ?>,
+
                                 purchase_id:
                                     <?= (int) $purchase['id'] ?>
+
                             })
                         }
                     );

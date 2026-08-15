@@ -14,6 +14,7 @@ if (!isset($_SESSION['admin_id'])) {
     header('Location: login.php');
 
     exit;
+
 }
 
 
@@ -1110,7 +1111,7 @@ $counts =
         <div class="summary-card">
 
             <span>
-                Pendentes
+                Devendo
             </span>
 
 
@@ -1171,7 +1172,7 @@ $counts =
             "
         >
 
-            ⏳ Pendentes
+            💰 Devendo
 
         </a>
 
@@ -1399,7 +1400,7 @@ $counts =
                                         "
                                     >
 
-                                        ⏳ Pendente
+                                        💰 Devendo
 
                                     </span>
 

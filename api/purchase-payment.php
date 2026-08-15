@@ -26,11 +26,13 @@ if (!isset($_SESSION['admin_id'])) {
 
 /*
 |--------------------------------------------------------------------------
-| BANCO
+| BANCO + SEGURANÇA
 |--------------------------------------------------------------------------
 */
 
 require_once __DIR__ . '/../config/database.php';
+
+require_once __DIR__ . '/../config/security.php';
 
 
 /*
@@ -76,6 +78,35 @@ if (!is_array($input)) {
     exit;
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| CSRF
+|--------------------------------------------------------------------------
+*/
+
+if (
+    !csrf_validate(
+        $input['csrf_token'] ?? null
+    )
+) {
+
+    http_response_code(403);
+
+    echo json_encode([
+        'success' => false,
+        'message' => 'Solicitação inválida.'
+    ], JSON_UNESCAPED_UNICODE);
+
+    exit;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| ID DA COMPRA
+|--------------------------------------------------------------------------
+*/
 
 $purchaseId = filter_var(
     $input['purchase_id'] ?? null,
@@ -127,6 +158,7 @@ try {
         throw new Exception(
             'A compra não existe ou já foi paga.'
         );
+
     }
 
 

@@ -2,10 +2,27 @@
 
 session_start();
 
+
+/*
+|--------------------------------------------------------------------------
+| AUTENTICAÇÃO
+|--------------------------------------------------------------------------
+*/
+
 if (!isset($_SESSION['admin_id'])) {
+
     header('Location: login.php');
+
     exit;
+
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| BANCO
+|--------------------------------------------------------------------------
+*/
 
 require_once __DIR__ . '/../config/database.php';
 
@@ -21,9 +38,13 @@ $personId = filter_var(
     FILTER_VALIDATE_INT
 );
 
+
 if (!$personId) {
+
     header('Location: index.php');
+
     exit;
+
 }
 
 
@@ -38,12 +59,16 @@ $stmt = $pdo->prepare("
         pe.id,
         pe.name,
         t.name AS team_name
+
     FROM people pe
+
     INNER JOIN teams t
         ON t.id = pe.team_id
+
     WHERE
         pe.id = ?
         AND pe.active = 1
+
     LIMIT 1
 ");
 
@@ -51,51 +76,79 @@ $stmt->execute([
     $personId
 ]);
 
-$person = $stmt->fetch(PDO::FETCH_ASSOC);
+
+$person =
+    $stmt->fetch(
+        PDO::FETCH_ASSOC
+    );
 
 
 if (!$person) {
+
     header('Location: index.php');
+
     exit;
+
 }
 
 
 /*
 |--------------------------------------------------------------------------
-| BUSCAR COMPRAS PENDENTES
+| BUSCAR COMPRAS DEVENDO
 |--------------------------------------------------------------------------
 */
 
 $stmt = $pdo->prepare("
     SELECT
+
         p.id,
+
         p.total,
+
         p.status,
+
         p.created_at,
+
         p.paid_at,
+
         COUNT(pi.id) AS item_count
+
     FROM purchases p
+
     LEFT JOIN purchase_items pi
         ON pi.purchase_id = p.id
+
     WHERE
         p.person_id = ?
         AND p.status = 'pending'
+
     GROUP BY
+
         p.id,
+
         p.total,
+
         p.status,
+
         p.created_at,
+
         p.paid_at
+
     ORDER BY
+
         p.created_at DESC
 ");
+
 
 $stmt->execute([
     $personId
 ]);
 
+
 $purchases =
-    $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt->fetchAll(
+        PDO::FETCH_ASSOC
+    );
 
 
 /*
@@ -105,6 +158,7 @@ $purchases =
 */
 
 $totalPending = 0;
+
 
 foreach ($purchases as $purchase) {
 
@@ -119,25 +173,36 @@ foreach ($purchases as $purchase) {
 
 <html lang="pt-BR">
 
+
 <head>
 
     <meta charset="UTF-8">
+
 
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
 
+
     <title>
-        Compras de <?= htmlspecialchars($person['name']) ?>
+
+        Compras de
+        <?= htmlspecialchars(
+            $person['name']
+        ) ?>
+
         | Carmelito's
+
     </title>
+
 
     <link
         rel="icon"
         type="image/png"
         href="../assets/images/logo.png"
     >
+
 
     <link
         rel="stylesheet"
@@ -146,6 +211,11 @@ foreach ($purchases as $purchase) {
 
 
     <style>
+
+
+        /* =====================================================
+           PAGE
+        ===================================================== */
 
         .person-purchases-page {
 
@@ -160,8 +230,14 @@ foreach ($purchases as $purchase) {
 
             padding:
                 35px 0 60px;
+
         }
 
+
+
+        /* =====================================================
+           BACK
+        ===================================================== */
 
         .back-link {
 
@@ -171,7 +247,8 @@ foreach ($purchases as $purchase) {
             align-items:
                 center;
 
-            gap: 6px;
+            gap:
+                6px;
 
             margin-bottom:
                 20px;
@@ -187,8 +264,14 @@ foreach ($purchases as $purchase) {
 
             font-weight:
                 700;
+
         }
 
+
+
+        /* =====================================================
+           PERSON HEADER
+        ===================================================== */
 
         .person-header {
 
@@ -227,6 +310,7 @@ foreach ($purchases as $purchase) {
                     30,
                     0.04
                 );
+
         }
 
 
@@ -240,6 +324,7 @@ foreach ($purchases as $purchase) {
 
             gap:
                 15px;
+
         }
 
 
@@ -271,6 +356,7 @@ foreach ($purchases as $purchase) {
 
             font-size:
                 27px;
+
         }
 
 
@@ -284,6 +370,7 @@ foreach ($purchases as $purchase) {
 
             font-size:
                 25px;
+
         }
 
 
@@ -297,13 +384,20 @@ foreach ($purchases as $purchase) {
 
             font-size:
                 13px;
+
         }
 
+
+
+        /* =====================================================
+           TOTAL DEVENDO
+        ===================================================== */
 
         .pending-total {
 
             text-align:
                 right;
+
         }
 
 
@@ -320,6 +414,7 @@ foreach ($purchases as $purchase) {
 
             font-size:
                 12px;
+
         }
 
 
@@ -330,8 +425,14 @@ foreach ($purchases as $purchase) {
 
             font-size:
                 25px;
+
         }
 
+
+
+        /* =====================================================
+           SECTION TITLE
+        ===================================================== */
 
         .section-title {
 
@@ -346,6 +447,7 @@ foreach ($purchases as $purchase) {
 
             margin-bottom:
                 15px;
+
         }
 
 
@@ -359,6 +461,7 @@ foreach ($purchases as $purchase) {
 
             font-size:
                 20px;
+
         }
 
 
@@ -369,8 +472,14 @@ foreach ($purchases as $purchase) {
 
             font-size:
                 13px;
+
         }
 
+
+
+        /* =====================================================
+           GRID
+        ===================================================== */
 
         .purchase-grid {
 
@@ -385,8 +494,14 @@ foreach ($purchases as $purchase) {
 
             gap:
                 16px;
+
         }
 
+
+
+        /* =====================================================
+           PURCHASE CARD
+        ===================================================== */
 
         .purchase-card {
 
@@ -423,6 +538,7 @@ foreach ($purchases as $purchase) {
             transition:
                 transform 0.2s ease,
                 box-shadow 0.2s ease;
+
         }
 
 
@@ -439,8 +555,14 @@ foreach ($purchases as $purchase) {
                     30,
                     0.08
                 );
+
         }
 
+
+
+        /* =====================================================
+           PURCHASE TOP
+        ===================================================== */
 
         .purchase-top {
 
@@ -455,6 +577,7 @@ foreach ($purchases as $purchase) {
 
             margin-bottom:
                 18px;
+
         }
 
 
@@ -468,6 +591,7 @@ foreach ($purchases as $purchase) {
 
             font-weight:
                 700;
+
         }
 
 
@@ -490,8 +614,14 @@ foreach ($purchases as $purchase) {
 
             font-weight:
                 800;
+
         }
 
+
+
+        /* =====================================================
+           PURCHASE DETAILS
+        ===================================================== */
 
         .purchase-details {
 
@@ -506,6 +636,7 @@ foreach ($purchases as $purchase) {
 
             margin-bottom:
                 18px;
+
         }
 
 
@@ -519,6 +650,7 @@ foreach ($purchases as $purchase) {
 
             background:
                 #f6f8f6;
+
         }
 
 
@@ -535,6 +667,7 @@ foreach ($purchases as $purchase) {
 
             font-size:
                 10px;
+
         }
 
 
@@ -545,8 +678,14 @@ foreach ($purchases as $purchase) {
 
             font-size:
                 14px;
+
         }
 
+
+
+        /* =====================================================
+           FOOTER
+        ===================================================== */
 
         .purchase-footer {
 
@@ -567,6 +706,7 @@ foreach ($purchases as $purchase) {
 
             border-top:
                 1px solid #edf0ee;
+
         }
 
 
@@ -580,6 +720,7 @@ foreach ($purchases as $purchase) {
 
             font-weight:
                 900;
+
         }
 
 
@@ -602,6 +743,7 @@ foreach ($purchases as $purchase) {
 
             font-weight:
                 800;
+
         }
 
 
@@ -610,8 +752,14 @@ foreach ($purchases as $purchase) {
 
             background:
                 #dcecdf;
+
         }
 
+
+
+        /* =====================================================
+           EMPTY
+        ===================================================== */
 
         .empty-state {
 
@@ -629,6 +777,7 @@ foreach ($purchases as $purchase) {
 
             text-align:
                 center;
+
         }
 
 
@@ -660,6 +809,7 @@ foreach ($purchases as $purchase) {
 
             font-size:
                 25px;
+
         }
 
 
@@ -670,6 +820,7 @@ foreach ($purchases as $purchase) {
 
             color:
                 #183b28;
+
         }
 
 
@@ -680,8 +831,14 @@ foreach ($purchases as $purchase) {
 
             color:
                 #7a857f;
+
         }
 
+
+
+        /* =====================================================
+           MOBILE
+        ===================================================== */
 
         @media (max-width: 700px) {
 
@@ -692,6 +849,7 @@ foreach ($purchases as $purchase) {
 
                 padding-top:
                     22px;
+
             }
 
 
@@ -702,6 +860,7 @@ foreach ($purchases as $purchase) {
 
                 flex-direction:
                     column;
+
             }
 
 
@@ -718,6 +877,7 @@ foreach ($purchases as $purchase) {
 
                 text-align:
                     left;
+
             }
 
 
@@ -725,6 +885,7 @@ foreach ($purchases as $purchase) {
 
                 grid-template-columns:
                     1fr;
+
             }
 
         }
@@ -736,6 +897,7 @@ foreach ($purchases as $purchase) {
 
                 font-size:
                     21px;
+
             }
 
 
@@ -749,6 +911,7 @@ foreach ($purchases as $purchase) {
 
                 font-size:
                     22px;
+
             }
 
         }
@@ -767,6 +930,10 @@ foreach ($purchases as $purchase) {
 <main class="person-purchases-page">
 
 
+    <!-- =====================================================
+         VOLTAR
+    ====================================================== -->
+
     <a
         href="index.php"
         class="back-link"
@@ -775,6 +942,7 @@ foreach ($purchases as $purchase) {
         ← Voltar para o Dashboard
 
     </a>
+
 
 
     <!-- =====================================================
@@ -788,11 +956,14 @@ foreach ($purchases as $purchase) {
 
 
             <div class="person-avatar">
+
                 👤
+
             </div>
 
 
             <div>
+
 
                 <h1>
 
@@ -812,6 +983,7 @@ foreach ($purchases as $purchase) {
                     ) ?>
 
                 </div>
+
 
             </div>
 
@@ -852,8 +1024,9 @@ foreach ($purchases as $purchase) {
 
     <div class="section-title">
 
+
         <h2>
-            Compras pendentes
+            Compras devendo
         </h2>
 
 
@@ -867,6 +1040,7 @@ foreach ($purchases as $purchase) {
             ?>
 
         </span>
+
 
     </div>
 
@@ -889,11 +1063,16 @@ foreach ($purchases as $purchase) {
                 <a
                     href="
                         purchase-view.php?id=
-                        <?= (int) $purchase['id'] ?>
+                        <?= (int)
+                            $purchase['id'] ?>
                     "
                     class="purchase-card"
                 >
 
+
+                    <!-- =====================================
+                         TOPO
+                    ====================================== -->
 
                     <div class="purchase-top">
 
@@ -913,7 +1092,7 @@ foreach ($purchases as $purchase) {
                             class="purchase-status"
                         >
 
-                            ⏳ Pendente
+                            💰 Devendo
 
                         </span>
 
@@ -921,16 +1100,24 @@ foreach ($purchases as $purchase) {
                     </div>
 
 
+
+                    <!-- =====================================
+                         DETALHES
+                    ====================================== -->
+
                     <div
                         class="purchase-details"
                     >
 
 
-                        <div class="detail-box">
+                        <div
+                            class="detail-box"
+                        >
 
                             <span>
                                 Produtos
                             </span>
+
 
                             <strong>
 
@@ -949,14 +1136,19 @@ foreach ($purchases as $purchase) {
 
                             </strong>
 
+
                         </div>
 
 
-                        <div class="detail-box">
+
+                        <div
+                            class="detail-box"
+                        >
 
                             <span>
                                 Data
                             </span>
+
 
                             <strong>
 
@@ -971,11 +1163,17 @@ foreach ($purchases as $purchase) {
 
                             </strong>
 
+
                         </div>
 
 
                     </div>
 
+
+
+                    <!-- =====================================
+                         RODAPÉ
+                    ====================================== -->
 
                     <div
                         class="purchase-footer"
@@ -989,7 +1187,9 @@ foreach ($purchases as $purchase) {
                             R$
 
                             <?= number_format(
-                                $purchase['total'],
+                                $purchase[
+                                    'total'
+                                ],
                                 2,
                                 ',',
                                 '.'
@@ -1026,18 +1226,22 @@ foreach ($purchases as $purchase) {
 
 
             <div class="empty-icon">
+
                 ✅
+
             </div>
 
 
             <h3>
-                Nenhuma pendência
+                Nenhuma dívida
             </h3>
 
 
             <p>
+
                 Esta pessoa não possui
-                compras pendentes.
+                compras devendo.
+
             </p>
 
 

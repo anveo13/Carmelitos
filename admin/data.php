@@ -9,87 +9,123 @@ require_once __DIR__ . '/../config/database.php';
 |--------------------------------------------------------------------------
 */
 
-/* Valor pago */
+
+/*
+|--------------------------------------------------------------------------
+| VALOR PAGO
+|--------------------------------------------------------------------------
+*/
+
 $stmt = $pdo->query("
     SELECT COALESCE(SUM(total), 0)
     FROM purchases
     WHERE status = 'paid'
 ");
 
-$valorPago = (float) $stmt->fetchColumn();
+$valorPago =
+    (float) $stmt->fetchColumn();
 
 
-/* Valor pendente */
+/*
+|--------------------------------------------------------------------------
+| VALOR DEVENDO
+|--------------------------------------------------------------------------
+*/
+
 $stmt = $pdo->query("
     SELECT COALESCE(SUM(total), 0)
     FROM purchases
     WHERE status = 'pending'
 ");
 
-$valorPendente = (float) $stmt->fetchColumn();
+$valorPendente =
+    (float) $stmt->fetchColumn();
 
 
-/* Total de pessoas */
+/*
+|--------------------------------------------------------------------------
+| TOTAL DE PESSOAS
+|--------------------------------------------------------------------------
+*/
+
 $stmt = $pdo->query("
     SELECT COUNT(*)
     FROM people
     WHERE active = 1
 ");
 
-$totalPessoas = (int) $stmt->fetchColumn();
+$totalPessoas =
+    (int) $stmt->fetchColumn();
 
 
-/* Total de compras */
+/*
+|--------------------------------------------------------------------------
+| TOTAL DE COMPRAS
+|--------------------------------------------------------------------------
+*/
+
 $stmt = $pdo->query("
     SELECT COUNT(*)
     FROM purchases
 ");
 
-$totalCompras = (int) $stmt->fetchColumn();
+$totalCompras =
+    (int) $stmt->fetchColumn();
 
 
 /*
 |--------------------------------------------------------------------------
-| PAGO
+| PAGOS
 |--------------------------------------------------------------------------
 |
-| Pessoas que possuem pelo menos uma compra paga.
+| Cada registro representa uma compra específica.
+|
+| IMPORTANTE:
+| O campo `id` abaixo é o ID da COMPRA,
+| e não o ID da pessoa.
 |
 */
 
 $stmt = $pdo->query("
     SELECT
-        pe.id,
-        pe.name,
-        t.name AS team_name,
 
-        SUM(p.total) AS total,
+        p.id,
 
-        MAX(p.paid_at) AS paid_at
+        p.person_id,
 
-    FROM people pe
+        p.total,
+
+        p.status,
+
+        p.created_at,
+
+        p.paid_at,
+
+        pe.name AS name,
+
+        t.name AS team_name
+
+    FROM purchases p
+
+    INNER JOIN people pe
+        ON pe.id = p.person_id
 
     INNER JOIN teams t
         ON t.id = pe.team_id
-
-    INNER JOIN purchases p
-        ON p.person_id = pe.id
 
     WHERE
         p.status = 'paid'
         AND pe.active = 1
 
-    GROUP BY
-        pe.id,
-        pe.name,
-        t.name
-
     ORDER BY
-        pe.name
+        p.paid_at DESC,
+        p.id DESC
 ");
 
 $pagos =
-    $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt->fetchAll(
+        PDO::FETCH_ASSOC
+    );
 
 
 /*
@@ -97,45 +133,53 @@ $pagos =
 | DEVENDO
 |--------------------------------------------------------------------------
 |
-| Pessoas que possuem pelo menos uma compra pendente.
+| Cada registro representa uma compra específica
+| que ainda não foi paga.
 |
-| Cada pessoa aparece apenas uma vez.
-| O total mostra tudo que ela deve.
+| O campo `id` é o ID da compra.
 |
 */
 
 $stmt = $pdo->query("
     SELECT
-        pe.id,
-        pe.name,
-        t.name AS team_name,
 
-        SUM(p.total) AS total
+        p.id,
 
-    FROM people pe
+        p.person_id,
+
+        p.total,
+
+        p.status,
+
+        p.created_at,
+
+        p.paid_at,
+
+        pe.name AS name,
+
+        t.name AS team_name
+
+    FROM purchases p
+
+    INNER JOIN people pe
+        ON pe.id = p.person_id
 
     INNER JOIN teams t
         ON t.id = pe.team_id
-
-    INNER JOIN purchases p
-        ON p.person_id = pe.id
 
     WHERE
         p.status = 'pending'
         AND pe.active = 1
 
-    GROUP BY
-        pe.id,
-        pe.name,
-        t.name
-
     ORDER BY
-        total DESC,
-        pe.name
+        p.created_at DESC,
+        p.id DESC
 ");
 
 $devendo =
-    $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt->fetchAll(
+        PDO::FETCH_ASSOC
+    );
 
 
 /*
@@ -145,12 +189,18 @@ $devendo =
 |
 | Pessoas ativas que nunca fizeram nenhuma compra.
 |
+| Aqui continuamos trabalhando com pessoa,
+| porque não existe uma compra para abrir.
+|
 */
 
 $stmt = $pdo->query("
     SELECT
+
         pe.id,
+
         pe.name,
+
         t.name AS team_name
 
     FROM people pe
@@ -170,7 +220,9 @@ $stmt = $pdo->query("
 ");
 
 $naoUtilizados =
-    $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt->fetchAll(
+        PDO::FETCH_ASSOC
+    );
 
 
 /*

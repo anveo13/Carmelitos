@@ -2,10 +2,27 @@
 
 session_start();
 
+
+/*
+|--------------------------------------------------------------------------
+| AUTENTICAÇÃO
+|--------------------------------------------------------------------------
+*/
+
 if (!isset($_SESSION['admin_id'])) {
+
     header('Location: login.php');
+
     exit;
+
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| BANCO
+|--------------------------------------------------------------------------
+*/
 
 require_once __DIR__ . '/../config/database.php';
 
@@ -16,12 +33,15 @@ require_once __DIR__ . '/../config/database.php';
 |--------------------------------------------------------------------------
 */
 
-$search = trim($_GET['search'] ?? '');
-$teamId = filter_input(
-    INPUT_GET,
-    'team',
-    FILTER_VALIDATE_INT
-);
+$search =
+    trim($_GET['search'] ?? '');
+
+$teamId =
+    filter_input(
+        INPUT_GET,
+        'team',
+        FILTER_VALIDATE_INT
+    );
 
 
 /*
@@ -38,7 +58,10 @@ $stmt = $pdo->query("
     ORDER BY name
 ");
 
-$teams = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$teams =
+    $stmt->fetchAll(
+        PDO::FETCH_ASSOC
+    );
 
 
 /*
@@ -48,13 +71,19 @@ $teams = $stmt->fetchAll(PDO::FETCH_ASSOC);
 */
 
 $sql = "
+
     SELECT
+
         p.id,
+
         p.name,
+
         p.active,
+
         p.created_at,
 
         t.id AS team_id,
+
         t.name AS team_name,
 
         COUNT(DISTINCT pu.id) AS purchase_count,
@@ -79,7 +108,9 @@ $sql = "
         ON pu.person_id = p.id
 
     WHERE 1 = 1
+
 ";
+
 
 $params = [];
 
@@ -93,10 +124,14 @@ $params = [];
 if ($search !== '') {
 
     $sql .= "
+
         AND p.name LIKE ?
+
     ";
 
-    $params[] = '%' . $search . '%';
+    $params[] =
+        '%' . $search . '%';
+
 }
 
 
@@ -109,34 +144,63 @@ if ($search !== '') {
 if ($teamId) {
 
     $sql .= "
+
         AND p.team_id = ?
+
     ";
 
-    $params[] = $teamId;
+    $params[] =
+        $teamId;
+
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| ORDENAR
+|--------------------------------------------------------------------------
+*/
+
 $sql .= "
+
     GROUP BY
+
         p.id,
+
         p.name,
+
         p.active,
+
         p.created_at,
+
         t.id,
+
         t.name
 
     ORDER BY
+
         p.active DESC,
+
         p.name ASC
+
 ";
 
 
-$stmt = $pdo->prepare($sql);
+$stmt =
+    $pdo->prepare(
+        $sql
+    );
 
-$stmt->execute($params);
+
+$stmt->execute(
+    $params
+);
+
 
 $people =
-    $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt->fetchAll(
+        PDO::FETCH_ASSOC
+    );
 
 
 /*
@@ -145,24 +209,30 @@ $people =
 |--------------------------------------------------------------------------
 */
 
-$countStmt = $pdo->query("
-    SELECT
+$countStmt =
+    $pdo->query("
 
-        COUNT(*) AS total,
+        SELECT
 
-        SUM(
-            active = 1
-        ) AS active,
+            COUNT(*) AS total,
 
-        SUM(
-            active = 0
-        ) AS inactive
+            SUM(
+                active = 1
+            ) AS active,
 
-    FROM people
-");
+            SUM(
+                active = 0
+            ) AS inactive
+
+        FROM people
+
+    ");
+
 
 $counts =
-    $countStmt->fetch(PDO::FETCH_ASSOC);
+    $countStmt->fetch(
+        PDO::FETCH_ASSOC
+    );
 
 ?>
 
@@ -170,23 +240,35 @@ $counts =
 
 <html lang="pt-BR">
 
+
 <head>
 
     <meta charset="UTF-8">
+
 
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
 
+
     <title>
         Pessoas | Carmelito's
     </title>
+
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="../assets/images/logo.png"
+    >
+
 
     <link
         rel="stylesheet"
         href="admin.css"
     >
+
 
     <style>
 
@@ -202,35 +284,50 @@ $counts =
                     calc(100% - 30px)
                 );
 
-            margin: 0 auto;
+            margin:
+                0 auto;
 
             padding:
                 35px 0 60px;
+
         }
 
 
+        /* =====================================================
+           HEADING
+        ===================================================== */
+
         .page-heading {
 
-            display: flex;
+            display:
+                flex;
 
-            align-items: flex-end;
+            align-items:
+                flex-end;
 
             justify-content:
                 space-between;
 
-            gap: 20px;
+            gap:
+                20px;
 
-            margin-bottom: 25px;
+            margin-bottom:
+                25px;
+
         }
 
 
         .page-heading h1 {
 
-            margin: 0;
+            margin:
+                0;
 
-            font-size: 30px;
+            font-size:
+                30px;
 
-            color: #123d26;
+            color:
+                #123d26;
+
         }
 
 
@@ -239,40 +336,55 @@ $counts =
             margin:
                 6px 0 0;
 
-            color: #708078;
+            color:
+                #708078;
+
         }
 
 
         .new-person-button {
 
-            display: inline-flex;
+            display:
+                inline-flex;
 
-            align-items: center;
+            align-items:
+                center;
 
-            justify-content: center;
+            justify-content:
+                center;
 
-            min-height: 44px;
+            min-height:
+                44px;
 
             padding:
                 0 18px;
 
-            border-radius: 10px;
+            border-radius:
+                10px;
 
-            background: #02511F;
+            background:
+                #02511F;
 
-            color: white;
+            color:
+                white;
 
-            text-decoration: none;
+            text-decoration:
+                none;
 
-            font-size: 14px;
+            font-size:
+                14px;
 
-            font-weight: 800;
+            font-weight:
+                800;
+
         }
 
 
         .new-person-button:hover {
 
-            background: #036b29;
+            background:
+                #036b29;
+
         }
 
 
@@ -282,51 +394,75 @@ $counts =
 
         .people-summary {
 
-            display: grid;
+            display:
+                grid;
 
             grid-template-columns:
-                repeat(3, 1fr);
+                repeat(
+                    3,
+                    1fr
+                );
 
-            gap: 15px;
+            gap:
+                15px;
 
-            margin-bottom: 22px;
+            margin-bottom:
+                22px;
+
         }
 
 
         .summary-card {
 
-            background: white;
+            background:
+                white;
 
             border:
                 1px solid #e1e7e3;
 
-            border-radius: 15px;
+            border-radius:
+                15px;
 
-            padding: 18px;
+            padding:
+                18px;
 
             box-shadow:
                 0 3px 12px
-                rgba(16, 54, 30, 0.04);
+                rgba(
+                    16,
+                    54,
+                    30,
+                    0.04
+                );
+
         }
 
 
         .summary-card span {
 
-            display: block;
+            display:
+                block;
 
-            color: #7a857f;
+            color:
+                #7a857f;
 
-            font-size: 13px;
+            font-size:
+                13px;
 
-            margin-bottom: 5px;
+            margin-bottom:
+                5px;
+
         }
 
 
         .summary-card strong {
 
-            font-size: 24px;
+            font-size:
+                24px;
 
-            color: #123d26;
+            color:
+                #123d26;
+
         }
 
 
@@ -336,46 +472,60 @@ $counts =
 
         .people-filters {
 
-            display: grid;
+            display:
+                grid;
 
             grid-template-columns:
                 1fr 230px;
 
-            gap: 12px;
+            gap:
+                12px;
 
-            margin-bottom: 22px;
+            margin-bottom:
+                22px;
+
         }
 
 
         .search-input,
         .team-select {
 
-            width: 100%;
+            width:
+                100%;
 
-            height: 48px;
+            height:
+                48px;
 
             border:
                 1px solid #dce3df;
 
-            border-radius: 10px;
+            border-radius:
+                10px;
 
-            background: white;
+            background:
+                white;
 
             padding:
                 0 14px;
 
-            color: #183b28;
+            color:
+                #183b28;
 
-            font-size: 14px;
+            font-size:
+                14px;
 
-            outline: none;
+            outline:
+                none;
+
         }
 
 
         .search-input:focus,
         .team-select:focus {
 
-            border-color: #087A3D;
+            border-color:
+                #087A3D;
+
         }
 
 
@@ -385,35 +535,55 @@ $counts =
 
         .people-grid {
 
-            display: grid;
+            display:
+                grid;
 
             grid-template-columns:
-                repeat(4, 1fr);
+                repeat(
+                    4,
+                    1fr
+                );
 
-            gap: 16px;
+            gap:
+                16px;
+
         }
 
 
+        /* =====================================================
+           CARD
+        ===================================================== */
+
         .person-card {
 
-            position: relative;
+            position:
+                relative;
 
-            background: white;
+            background:
+                white;
 
             border:
                 1px solid #e1e7e3;
 
-            border-radius: 16px;
+            border-radius:
+                16px;
 
-            padding: 19px;
+            padding:
+                19px;
 
             box-shadow:
                 0 3px 12px
-                rgba(16, 54, 30, 0.04);
+                rgba(
+                    16,
+                    54,
+                    30,
+                    0.04
+                );
 
             transition:
                 transform 0.2s ease,
                 box-shadow 0.2s ease;
+
         }
 
 
@@ -424,48 +594,74 @@ $counts =
 
             box-shadow:
                 0 7px 20px
-                rgba(16, 54, 30, 0.08);
+                rgba(
+                    16,
+                    54,
+                    30,
+                    0.08
+                );
+
         }
 
 
         .person-card.inactive {
 
-            opacity: 0.62;
+            opacity:
+                0.62;
+
         }
 
 
+        /* =====================================================
+           HEADER
+        ===================================================== */
+
         .person-card-header {
 
-            display: flex;
+            display:
+                flex;
 
-            align-items: flex-start;
+            align-items:
+                flex-start;
 
             justify-content:
                 space-between;
 
-            gap: 10px;
+            gap:
+                10px;
 
-            margin-bottom: 18px;
+            margin-bottom:
+                18px;
+
         }
 
 
         .person-avatar {
 
-            width: 48px;
+            width:
+                48px;
 
-            height: 48px;
+            height:
+                48px;
 
-            border-radius: 13px;
+            border-radius:
+                13px;
 
-            background: #e7f5eb;
+            background:
+                #e7f5eb;
 
-            display: flex;
+            display:
+                flex;
 
-            align-items: center;
+            align-items:
+                center;
 
-            justify-content: center;
+            justify-content:
+                center;
 
-            font-size: 21px;
+            font-size:
+                21px;
+
         }
 
 
@@ -474,49 +670,68 @@ $counts =
             padding:
                 5px 8px;
 
-            border-radius: 20px;
+            border-radius:
+                20px;
 
-            font-size: 10px;
+            font-size:
+                10px;
 
-            font-weight: 800;
+            font-weight:
+                800;
+
         }
 
 
         .person-status.active {
 
-            background: #e4f6ea;
+            background:
+                #e4f6ea;
 
-            color: #087331;
+            color:
+                #087331;
+
         }
 
 
         .person-status.inactive {
 
-            background: #f0f1f1;
+            background:
+                #f0f1f1;
 
-            color: #6d7771;
+            color:
+                #6d7771;
+
         }
 
 
         .person-name {
 
-            font-size: 16px;
+            font-size:
+                16px;
 
-            font-weight: 800;
+            font-weight:
+                800;
 
-            color: #123d26;
+            color:
+                #123d26;
 
-            line-height: 1.25;
+            line-height:
+                1.25;
+
         }
 
 
         .person-team {
 
-            margin-top: 5px;
+            margin-top:
+                5px;
 
-            color: #7a857f;
+            color:
+                #7a857f;
 
-            font-size: 12px;
+            font-size:
+                12px;
+
         }
 
 
@@ -526,50 +741,68 @@ $counts =
 
         .person-info {
 
-            display: grid;
+            display:
+                grid;
 
             grid-template-columns:
                 1fr 1fr;
 
-            gap: 8px;
+            gap:
+                8px;
 
-            margin-top: 18px;
+            margin-top:
+                18px;
+
         }
 
 
         .info-box {
 
-            background: #f6f8f6;
+            background:
+                #f6f8f6;
 
-            border-radius: 9px;
+            border-radius:
+                9px;
 
-            padding: 10px;
+            padding:
+                10px;
+
         }
 
 
         .info-box span {
 
-            display: block;
+            display:
+                block;
 
-            color: #87918b;
+            color:
+                #87918b;
 
-            font-size: 10px;
+            font-size:
+                10px;
 
-            margin-bottom: 4px;
+            margin-bottom:
+                4px;
+
         }
 
 
         .info-box strong {
 
-            color: #183b28;
+            color:
+                #183b28;
 
-            font-size: 13px;
+            font-size:
+                13px;
+
         }
 
 
         .pending-value {
 
-            color: #a66c00 !important;
+            color:
+                #a66c00 !important;
+
         }
 
 
@@ -579,52 +812,73 @@ $counts =
 
         .person-actions {
 
-            display: flex;
+            display:
+                flex;
 
-            gap: 8px;
+            gap:
+                8px;
 
-            margin-top: 15px;
+            margin-top:
+                15px;
 
-            padding-top: 15px;
+            padding-top:
+                15px;
 
             border-top:
                 1px solid #edf0ee;
+
         }
 
 
         .person-action {
 
-            flex: 1;
+            flex:
+                1;
 
-            min-height: 36px;
+            min-height:
+                36px;
 
-            border: 0;
+            border:
+                0;
 
-            border-radius: 8px;
+            border-radius:
+                8px;
 
-            background: #eef5f0;
+            background:
+                #eef5f0;
 
-            color: #02511F;
+            color:
+                #02511F;
 
-            font-size: 11px;
+            font-size:
+                11px;
 
-            font-weight: 800;
+            font-weight:
+                800;
 
-            text-decoration: none;
+            text-decoration:
+                none;
 
-            display: flex;
+            display:
+                flex;
 
-            align-items: center;
+            align-items:
+                center;
 
-            justify-content: center;
+            justify-content:
+                center;
 
-            cursor: pointer;
+            cursor:
+                pointer;
+
         }
 
 
         .person-action:hover {
 
-            background: #dcecdf;
+            background:
+                #dcecdf;
+
         }
 
 
@@ -634,56 +888,75 @@ $counts =
 
         .empty-people {
 
-            background: white;
+            background:
+                white;
 
             border:
                 1px solid #e1e7e3;
 
-            border-radius: 17px;
+            border-radius:
+                17px;
 
             padding:
                 70px 20px;
 
-            text-align: center;
+            text-align:
+                center;
+
         }
 
 
         .empty-icon {
 
-            width: 60px;
+            width:
+                60px;
 
-            height: 60px;
+            height:
+                60px;
 
             margin:
                 0 auto 15px;
 
-            border-radius: 50%;
+            border-radius:
+                50%;
 
-            background: #e7f5eb;
+            background:
+                #e7f5eb;
 
-            display: flex;
+            display:
+                flex;
 
-            align-items: center;
+            align-items:
+                center;
 
-            justify-content: center;
+            justify-content:
+                center;
 
-            font-size: 25px;
+            font-size:
+                25px;
+
         }
 
 
         .empty-people h3 {
 
-            margin: 0;
+            margin:
+                0;
 
-            color: #183b28;
+            color:
+                #183b28;
+
         }
 
 
         .empty-people p {
 
-            margin-top: 6px;
+            margin-top:
+                6px;
 
-            color: #7a857f;
+            color:
+                #7a857f;
+
         }
 
 
@@ -696,7 +969,11 @@ $counts =
             .people-grid {
 
                 grid-template-columns:
-                    repeat(3, 1fr);
+                    repeat(
+                        3,
+                        1fr
+                    );
+
             }
 
         }
@@ -707,13 +984,19 @@ $counts =
             .people-grid {
 
                 grid-template-columns:
-                    repeat(2, 1fr);
+                    repeat(
+                        2,
+                        1fr
+                    );
+
             }
 
 
             .people-filters {
 
-                grid-template-columns: 1fr;
+                grid-template-columns:
+                    1fr;
+
             }
 
         }
@@ -726,27 +1009,36 @@ $counts =
                 width:
                     calc(100% - 20px);
 
-                padding-top: 22px;
+                padding-top:
+                    22px;
+
             }
 
 
             .page-heading {
 
-                align-items: stretch;
+                align-items:
+                    stretch;
 
-                flex-direction: column;
+                flex-direction:
+                    column;
+
             }
 
 
             .page-heading h1 {
 
-                font-size: 25px;
+                font-size:
+                    25px;
+
             }
 
 
             .new-person-button {
 
-                width: 100%;
+                width:
+                    100%;
+
             }
 
 
@@ -754,6 +1046,7 @@ $counts =
 
                 grid-template-columns:
                     1fr;
+
             }
 
 
@@ -761,12 +1054,15 @@ $counts =
 
                 grid-template-columns:
                     1fr;
+
             }
 
 
             .person-card {
 
-                padding: 17px;
+                padding:
+                    17px;
+
             }
 
         }
@@ -791,11 +1087,13 @@ $counts =
 
     <div class="page-heading">
 
+
         <div>
 
             <h1>
                 👥 Pessoas
             </h1>
+
 
             <p>
                 Gerencie as pessoas e suas equipes.
@@ -808,8 +1106,11 @@ $counts =
             href="person.php"
             class="new-person-button"
         >
+
             + Nova pessoa
+
         </a>
+
 
     </div>
 
@@ -828,6 +1129,7 @@ $counts =
                 Total
             </span>
 
+
             <strong>
                 <?= (int) $counts['total'] ?>
             </strong>
@@ -841,6 +1143,7 @@ $counts =
                 Ativas
             </span>
 
+
             <strong>
                 <?= (int) $counts['active'] ?>
             </strong>
@@ -853,6 +1156,7 @@ $counts =
             <span>
                 Inativas
             </span>
+
 
             <strong>
                 <?= (int) $counts['inactive'] ?>
@@ -924,13 +1228,18 @@ $counts =
          PESSOAS
     ====================================================== -->
 
-    <?php if (count($people) > 0): ?>
+    <?php if (
+        count($people) > 0
+    ): ?>
 
 
         <section class="people-grid">
 
 
-            <?php foreach ($people as $person): ?>
+            <?php foreach (
+                $people
+                as $person
+            ): ?>
 
 
                 <article
@@ -948,11 +1257,15 @@ $counts =
 
 
                         <div class="person-avatar">
+
                             👤
+
                         </div>
 
 
-                        <?php if ($person['active']): ?>
+                        <?php if (
+                            $person['active']
+                        ): ?>
 
                             <span
                                 class="
@@ -960,7 +1273,9 @@ $counts =
                                     active
                                 "
                             >
+
                                 🟢 Ativo
+
                             </span>
 
                         <?php else: ?>
@@ -971,7 +1286,9 @@ $counts =
                                     inactive
                                 "
                             >
+
                                 ⚪ Inativo
+
                             </span>
 
                         <?php endif; ?>
@@ -993,6 +1310,7 @@ $counts =
                     <div class="person-team">
 
                         👥
+
                         <?= htmlspecialchars(
                             $person['team_name']
                         ) ?>
@@ -1010,6 +1328,7 @@ $counts =
                                 Compras
                             </span>
 
+
                             <strong>
 
                                 <?= (int)
@@ -1026,14 +1345,16 @@ $counts =
                         <div class="info-box">
 
                             <span>
-                                Pendente
+                                Devendo
                             </span>
+
 
                             <strong
                                 class="pending-value"
                             >
 
                                 R$
+
                                 <?= number_format(
                                     $person[
                                         'pending_total'
@@ -1058,11 +1379,15 @@ $counts =
                         <a
                             href="
                                 person.php?id=
-                                <?= (int) $person['id'] ?>
+                                <?= (int)
+                                    $person['id']
+                                ?>
                             "
                             class="person-action"
                         >
+
                             ✏️ Editar
+
                         </a>
 
 
@@ -1083,18 +1408,28 @@ $counts =
 
         <div class="empty-people">
 
+
             <div class="empty-icon">
+
                 👥
+
             </div>
 
+
             <h3>
+
                 Nenhuma pessoa encontrada
+
             </h3>
 
+
             <p>
+
                 Tente alterar os filtros ou
                 cadastre uma nova pessoa.
+
             </p>
+
 
         </div>
 

@@ -6,3 +6,4 @@ config/database.php
 Thumbs.db
 
 *.log
+carmelitos_backup.sql
