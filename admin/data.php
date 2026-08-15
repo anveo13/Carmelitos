@@ -52,6 +52,9 @@ $totalCompras = (int) $stmt->fetchColumn();
 |--------------------------------------------------------------------------
 | PAGO
 |--------------------------------------------------------------------------
+|
+| Pessoas que possuem pelo menos uma compra paga.
+|
 */
 
 $stmt = $pdo->query("
@@ -59,7 +62,9 @@ $stmt = $pdo->query("
         pe.id,
         pe.name,
         t.name AS team_name,
+
         SUM(p.total) AS total,
+
         MAX(p.paid_at) AS paid_at
 
     FROM people pe
@@ -83,47 +88,20 @@ $stmt = $pdo->query("
         pe.name
 ");
 
-$pagos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-
-/*
-|--------------------------------------------------------------------------
-| PENDENTE
-|--------------------------------------------------------------------------
-*/
-
-$stmt = $pdo->query("
-    SELECT
-        pe.id,
-        pe.name,
-        t.name AS team_name,
-        p.id AS purchase_id,
-        p.total,
-        p.created_at
-
-    FROM purchases p
-
-    INNER JOIN people pe
-        ON pe.id = p.person_id
-
-    INNER JOIN teams t
-        ON t.id = pe.team_id
-
-    WHERE
-        p.status = 'pending'
-        AND pe.active = 1
-
-    ORDER BY
-        p.created_at DESC
-");
-
-$pendentes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$pagos =
+    $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 
 /*
 |--------------------------------------------------------------------------
 | DEVENDO
 |--------------------------------------------------------------------------
+|
+| Pessoas que possuem pelo menos uma compra pendente.
+|
+| Cada pessoa aparece apenas uma vez.
+| O total mostra tudo que ela deve.
+|
 */
 
 $stmt = $pdo->query("
@@ -131,6 +109,7 @@ $stmt = $pdo->query("
         pe.id,
         pe.name,
         t.name AS team_name,
+
         SUM(p.total) AS total
 
     FROM people pe
@@ -151,16 +130,21 @@ $stmt = $pdo->query("
         t.name
 
     ORDER BY
+        total DESC,
         pe.name
 ");
 
-$devendo = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$devendo =
+    $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 
 /*
 |--------------------------------------------------------------------------
 | NÃO UTILIZADO
 |--------------------------------------------------------------------------
+|
+| Pessoas ativas que nunca fizeram nenhuma compra.
+|
 */
 
 $stmt = $pdo->query("
@@ -185,7 +169,8 @@ $stmt = $pdo->query("
         pe.name
 ");
 
-$naoUtilizados = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$naoUtilizados =
+    $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 
 /*
@@ -196,20 +181,25 @@ $naoUtilizados = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 return [
 
-    'valor_pago' => $valorPago,
+    'valor_pago' =>
+        $valorPago,
 
-    'valor_pendente' => $valorPendente,
+    'valor_pendente' =>
+        $valorPendente,
 
-    'total_pessoas' => $totalPessoas,
+    'total_pessoas' =>
+        $totalPessoas,
 
-    'total_compras' => $totalCompras,
+    'total_compras' =>
+        $totalCompras,
 
-    'pagos' => $pagos,
+    'pagos' =>
+        $pagos,
 
-    'pendentes' => $pendentes,
+    'devendo' =>
+        $devendo,
 
-    'devendo' => $devendo,
-
-    'nao_utilizados' => $naoUtilizados,
+    'nao_utilizados' =>
+        $naoUtilizados,
 
 ];

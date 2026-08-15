@@ -22,9 +22,12 @@ $purchaseId = filter_input(
     FILTER_VALIDATE_INT
 );
 
+
 if (!$purchaseId) {
-    header('Location: index.php');
+
+    header('Location: purchases.php');
     exit;
+
 }
 
 
@@ -42,8 +45,10 @@ $stmt = $pdo->prepare("
         p.created_at,
         p.paid_at,
 
+        pe.id AS person_id,
         pe.name AS person_name,
 
+        t.id AS team_id,
         t.name AS team_name
 
     FROM purchases p
@@ -68,34 +73,44 @@ $purchase =
 
 
 if (!$purchase) {
-    header('Location: index.php');
+
+    header('Location: purchases.php');
     exit;
+
 }
 
 
 /*
 |--------------------------------------------------------------------------
-| PRODUTOS DA COMPRA
+| BUSCAR ITENS
 |--------------------------------------------------------------------------
 */
 
 $stmt = $pdo->prepare("
     SELECT
+        pi.id,
         pi.product_id,
         pi.quantity,
         pi.unit_price,
         pi.subtotal,
 
-        pr.name AS product_name
+        pr.name AS product_name,
+
+        c.name AS category_name
 
     FROM purchase_items pi
 
     INNER JOIN products pr
         ON pr.id = pi.product_id
 
+    INNER JOIN categories c
+        ON c.id = pr.category_id
+
     WHERE pi.purchase_id = ?
 
-    ORDER BY pr.name
+    ORDER BY
+        c.name,
+        pr.name
 ");
 
 $stmt->execute([
@@ -105,54 +120,10 @@ $stmt->execute([
 $items =
     $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-
-/*
-|--------------------------------------------------------------------------
-| STATUS
-|--------------------------------------------------------------------------
-*/
-
-$statusLabels = [
-
-    'paid' => 'Pago',
-
-    'pending' => 'Pendente'
-
-];
-
-$statusLabel =
-    $statusLabels[$purchase['status']]
-    ?? $purchase['status'];
-
-
-/*
-|--------------------------------------------------------------------------
-| DATA
-|--------------------------------------------------------------------------
-*/
-
-$createdAt =
-    date(
-        'd/m/Y H:i',
-        strtotime($purchase['created_at'])
-    );
-
-
-$paidAt = null;
-
-if ($purchase['paid_at']) {
-
-    $paidAt =
-        date(
-            'd/m/Y H:i',
-            strtotime($purchase['paid_at'])
-        );
-
-}
-
 ?>
 
 <!DOCTYPE html>
+
 <html lang="pt-BR">
 
 <head>
@@ -165,7 +136,8 @@ if ($purchase['paid_at']) {
     >
 
     <title>
-        Compra #<?= $purchase['id'] ?> | Carmelito's
+        Compra #<?= (int) $purchase['id'] ?>
+        | Carmelito's
     </title>
 
     <link
@@ -175,277 +147,537 @@ if ($purchase['paid_at']) {
 
     <style>
 
-        .purchase-view {
-            width: min(800px, calc(100% - 30px));
-            margin: 0 auto;
-            padding: 35px 0 60px;
+        /* =====================================================
+           PAGE
+        ===================================================== */
+
+        .purchase-view-page {
+
+            width:
+                min(
+                    850px,
+                    calc(100% - 30px)
+                );
+
+            margin:
+                0 auto;
+
+            padding:
+                35px 0 60px;
         }
 
 
-        .purchase-view-top {
+        .view-heading {
+
             display: flex;
+
             align-items: center;
-            justify-content: space-between;
-            gap: 15px;
+
+            justify-content:
+                space-between;
+
+            gap: 20px;
+
             margin-bottom: 25px;
         }
 
 
-        .purchase-view-top h1 {
-            font-size: 28px;
+        .view-heading h1 {
+
+            margin: 0;
+
+            color: #123d26;
+
+            font-size: 30px;
+        }
+
+
+        .view-heading p {
+
+            margin:
+                6px 0 0;
+
+            color: #708078;
+
+            font-size: 13px;
         }
 
 
         .back-link {
+
             color: #02511F;
+
             text-decoration: none;
-            font-weight: 700;
+
+            font-weight: 800;
+
+            white-space: nowrap;
         }
 
 
-        .purchase-detail-card {
-            background: #fff;
-            border: 1px solid #e1e7e3;
-            border-radius: 18px;
-            padding: 25px;
-            margin-bottom: 18px;
+        /* =====================================================
+           PERSON
+        ===================================================== */
+
+        .purchase-person-card {
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content:
+                space-between;
+
+            gap: 20px;
+
+            background: white;
+
+            border:
+                1px solid #e1e7e3;
+
+            border-radius: 17px;
+
+            padding: 20px;
+
+            margin-bottom: 16px;
 
             box-shadow:
-                0 3px 12px rgba(16, 54, 30, 0.04);
+                0 3px 12px
+                rgba(16, 54, 30, 0.04);
         }
 
 
-        .person-header {
+        .person-data {
+
             display: flex;
+
             align-items: center;
-            gap: 15px;
+
+            gap: 14px;
         }
 
 
-        .person-icon {
-            width: 55px;
-            height: 55px;
+        .person-avatar {
+
+            width: 52px;
+
+            height: 52px;
 
             border-radius: 14px;
 
-            background: #e8f5ec;
+            background: #e7f5eb;
 
             display: flex;
+
             align-items: center;
+
             justify-content: center;
 
-            font-size: 25px;
+            font-size: 22px;
         }
 
 
         .person-name {
-            font-size: 21px;
-            font-weight: 800;
-            color: #183b28;
+
+            color: #123d26;
+
+            font-size: 17px;
+
+            font-weight: 900;
         }
 
 
-        .person-team {
+        .team-name {
+
             margin-top: 4px;
-            color: #718078;
-            font-size: 14px;
-        }
 
-
-        .purchase-meta {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-top: 22px;
-        }
-
-
-        .meta-item {
-            background: #f6f8f6;
-            border-radius: 11px;
-            padding: 13px 15px;
-        }
-
-
-        .meta-item span {
-            display: block;
             color: #7a857f;
+
             font-size: 12px;
-            margin-bottom: 5px;
         }
 
 
-        .meta-item strong {
-            font-size: 14px;
-            color: #183b28;
-        }
+        /* =====================================================
+           STATUS
+        ===================================================== */
 
+        .purchase-status {
 
-        .status-badge {
-            display: inline-block;
-            padding: 6px 10px;
-            border-radius: 20px;
+            display: inline-flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            padding:
+                8px 12px;
+
+            border-radius: 30px;
+
             font-size: 12px;
-            font-weight: 700;
+
+            font-weight: 900;
         }
 
 
-        .status-badge.paid {
-            background: #e5f6eb;
+        .purchase-status.pending {
+
+            background: #fff3d6;
+
+            color: #936700;
+        }
+
+
+        .purchase-status.paid {
+
+            background: #e4f6ea;
+
             color: #087331;
         }
 
 
-        .status-badge.pending {
-            background: #fff4d8;
-            color: #996900;
+        /* =====================================================
+           ITEMS
+        ===================================================== */
+
+        .items-card {
+
+            background: white;
+
+            border:
+                1px solid #e1e7e3;
+
+            border-radius: 17px;
+
+            padding: 22px;
+
+            box-shadow:
+                0 3px 12px
+                rgba(16, 54, 30, 0.04);
         }
 
 
         .items-title {
-            font-size: 18px;
-            margin-bottom: 15px;
-        }
 
+            margin: 0 0 18px;
 
-        .purchase-items {
-            display: grid;
-            gap: 10px;
+            color: #183b28;
+
+            font-size: 17px;
         }
 
 
         .purchase-item {
+
             display: flex;
+
             align-items: center;
+
+            justify-content:
+                space-between;
+
             gap: 15px;
 
-            padding: 15px;
+            padding:
+                15px 0;
 
-            border: 1px solid #e8ece9;
-
-            border-radius: 12px;
+            border-bottom:
+                1px solid #edf0ee;
         }
 
 
-        .item-info {
-            flex: 1;
+        .purchase-item:last-child {
+
+            border-bottom: 0;
+        }
+
+
+        .item-left {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+
+            min-width: 0;
+        }
+
+
+        .item-icon {
+
+            width: 42px;
+
+            height: 42px;
+
+            flex-shrink: 0;
+
+            border-radius: 11px;
+
+            background: #f1f5f2;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
         }
 
 
         .item-name {
-            font-weight: 700;
+
+            color: #183b28;
+
             font-size: 14px;
+
+            font-weight: 800;
+        }
+
+
+        .item-category {
+
+            margin-top: 3px;
+
+            color: #8a948e;
+
+            font-size: 10px;
         }
 
 
         .item-quantity {
-            margin-top: 4px;
-            color: #7a857f;
+
+            color: #708078;
+
             font-size: 12px;
+
+            white-space: nowrap;
         }
 
 
         .item-price {
+
+            min-width: 85px;
+
             text-align: right;
-            font-weight: 700;
+
+            color: #183b28;
+
             font-size: 14px;
+
+            font-weight: 900;
         }
 
 
-        .item-unit-price {
-            display: block;
-            margin-top: 3px;
-            color: #8b958f;
-            font-size: 11px;
-            font-weight: 400;
-        }
+        /* =====================================================
+           TOTAL
+        ===================================================== */
 
+        .purchase-total-box {
 
-        .purchase-total {
             display: flex;
+
             align-items: center;
-            justify-content: space-between;
+
+            justify-content:
+                space-between;
+
+            gap: 20px;
 
             margin-top: 20px;
+
             padding-top: 20px;
 
-            border-top: 1px solid #e1e7e3;
+            border-top:
+                2px solid #e7ece8;
         }
 
 
-        .purchase-total span {
+        .total-label {
+
+            color: #708078;
+
+            font-size: 13px;
+
             font-weight: 700;
         }
 
 
-        .purchase-total strong {
-            font-size: 27px;
+        .total-value {
+
             color: #02511F;
+
+            font-size: 28px;
+
+            font-weight: 900;
         }
 
 
-        .actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
+        /* =====================================================
+           PAYMENT
+        ===================================================== */
+
+        .payment-box {
+
+            margin-top: 16px;
+
+            background: white;
+
+            border:
+                1px solid #e1e7e3;
+
+            border-radius: 17px;
+
+            padding: 20px;
+
+            box-shadow:
+                0 3px 12px
+                rgba(16, 54, 30, 0.04);
         }
 
 
-        .action-button {
-            height: 52px;
+        .payment-box h2 {
+
+            margin: 0;
+
+            color: #183b28;
+
+            font-size: 16px;
+        }
+
+
+        .payment-info {
+
+            margin-top: 6px;
+
+            color: #7a857f;
+
+            font-size: 12px;
+        }
+
+
+        .payment-button {
+
+            width: 100%;
+
+            min-height: 48px;
+
+            margin-top: 16px;
 
             border: 0;
-            border-radius: 11px;
+
+            border-radius: 10px;
+
+            background: #49C83B;
+
+            color: white;
 
             font-size: 14px;
-            font-weight: 800;
+
+            font-weight: 900;
 
             cursor: pointer;
         }
 
 
-        .pay-button {
-            background: #49C83B;
-            color: white;
+        .payment-button:hover {
+
+            background: #3eb532;
         }
 
 
-        .delete-button {
-            background: #fff0ed;
-            color: #b34b00;
+        .paid-date {
+
+            margin-top: 10px;
+
+            color: #087331;
+
+            font-size: 12px;
+
+            font-weight: 700;
+
+            text-align: center;
         }
 
+
+        /* =====================================================
+           MOBILE
+        ===================================================== */
 
         @media (max-width: 600px) {
 
-            .purchase-view {
-                width: calc(100% - 20px);
+            .purchase-view-page {
+
+                width:
+                    calc(100% - 20px);
+
                 padding-top: 22px;
             }
 
 
-            .purchase-view-top h1 {
-                font-size: 23px;
+            .view-heading {
+
+                align-items:
+                    flex-start;
+
+                flex-direction:
+                    column;
             }
 
 
-            .purchase-detail-card {
-                padding: 18px;
+            .view-heading h1 {
+
+                font-size: 25px;
             }
 
 
-            .purchase-meta {
-                grid-template-columns: 1fr;
+            .purchase-person-card {
+
+                align-items:
+                    flex-start;
+
+                flex-direction:
+                    column;
+            }
+
+
+            .purchase-status {
+
+                align-self:
+                    flex-start;
+            }
+
+
+            .items-card {
+
+                padding: 17px;
             }
 
 
             .purchase-item {
-                padding: 13px;
+
+                align-items:
+                    flex-start;
+
+                flex-wrap: wrap;
             }
 
 
-            .actions {
-                grid-template-columns: 1fr;
+            .item-price {
+
+                margin-left: auto;
+            }
+
+
+            .purchase-total-box {
+
+                align-items:
+                    flex-end;
+            }
+
+
+            .total-value {
+
+                font-size: 24px;
             }
 
         }
@@ -458,67 +690,43 @@ if ($purchase['paid_at']) {
 <body>
 
 
-<header class="admin-header">
-
-    <div class="brand">
-
-        <div class="brand-icon">
-            🛒
-        </div>
-
-        <div>
-
-            <strong>
-                Carmelito's
-            </strong>
-
-            <span>
-                Administração
-            </span>
-
-        </div>
-
-    </div>
+<?php require_once __DIR__ . '/includes/header.php'; ?>
 
 
-    <div class="admin-user">
-
-        <span>
-            Olá,
-            <?= htmlspecialchars(
-                $_SESSION['admin_username']
-            ) ?>
-        </span>
-
-        <a href="logout.php">
-            Sair
-        </a>
-
-    </div>
-
-</header>
-
-
-
-<main class="purchase-view">
+<main class="purchase-view-page">
 
 
     <!-- =====================================================
-         TOPO
+         CABEÇALHO
     ====================================================== -->
 
-    <div class="purchase-view-top">
+    <div class="view-heading">
 
-        <h1>
-            Compra #<?= $purchase['id'] ?>
-        </h1>
+        <div>
+
+            <h1>
+                🛒 Compra #<?= (int) $purchase['id'] ?>
+            </h1>
+
+            <p>
+
+                <?= date(
+                    'd/m/Y \à\s H:i',
+                    strtotime(
+                        $purchase['created_at']
+                    )
+                ) ?>
+
+            </p>
+
+        </div>
 
 
         <a
-            href="index.php"
+            href="purchases.php"
             class="back-link"
         >
-            ← Voltar
+            ← Voltar para compras
         </a>
 
     </div>
@@ -529,11 +737,12 @@ if ($purchase['paid_at']) {
          PESSOA
     ====================================================== -->
 
-    <section class="purchase-detail-card">
+    <section class="purchase-person-card">
 
-        <div class="person-header">
 
-            <div class="person-icon">
+        <div class="person-data">
+
+            <div class="person-avatar">
                 👤
             </div>
 
@@ -549,7 +758,7 @@ if ($purchase['paid_at']) {
                 </div>
 
 
-                <div class="person-team">
+                <div class="team-name">
 
                     👥
                     <?= htmlspecialchars(
@@ -564,67 +773,32 @@ if ($purchase['paid_at']) {
 
 
 
-        <div class="purchase-meta">
+        <?php if (
+            $purchase['status'] === 'paid'
+        ): ?>
 
-
-            <div class="meta-item">
-
-                <span>
-                    Situação
-                </span>
-
-                <strong>
-
-                    <span
-                        class="
-                            status-badge
-                            <?= htmlspecialchars(
-                                $purchase['status']
-                            ) ?>
-                        "
-                    >
-
-                        <?= $statusLabel ?>
-
-                    </span>
-
-                </strong>
-
+            <div
+                class="
+                    purchase-status
+                    paid
+                "
+            >
+                ✅ Pago
             </div>
 
+        <?php else: ?>
 
-
-            <div class="meta-item">
-
-                <span>
-                    Criada em
-                </span>
-
-                <strong>
-                    <?= $createdAt ?>
-                </strong>
-
+            <div
+                class="
+                    purchase-status
+                    pending
+                "
+            >
+                ⏳ Pendente
             </div>
 
+        <?php endif; ?>
 
-            <?php if ($paidAt): ?>
-
-                <div class="meta-item">
-
-                    <span>
-                        Paga em
-                    </span>
-
-                    <strong>
-                        <?= $paidAt ?>
-                    </strong>
-
-                </div>
-
-            <?php endif; ?>
-
-
-        </div>
 
     </section>
 
@@ -634,22 +808,29 @@ if ($purchase['paid_at']) {
          PRODUTOS
     ====================================================== -->
 
-    <section class="purchase-detail-card">
+    <section class="items-card">
+
 
         <h2 class="items-title">
-            🛒 Produtos
+            📦 Produtos
         </h2>
 
 
-        <div class="purchase-items">
+        <?php foreach ($items as $item): ?>
 
 
-            <?php foreach ($items as $item): ?>
-
-                <div class="purchase-item">
+            <div class="purchase-item">
 
 
-                    <div class="item-info">
+                <div class="item-left">
+
+
+                    <div class="item-icon">
+                        📦
+                    </div>
+
+
+                    <div>
 
                         <div class="item-name">
 
@@ -660,60 +841,70 @@ if ($purchase['paid_at']) {
                         </div>
 
 
-                        <div class="item-quantity">
+                        <div class="item-category">
 
-                            <?= $item['quantity'] ?>
-                            × unidade
+                            <?= htmlspecialchars(
+                                $item['category_name']
+                            ) ?>
 
                         </div>
 
                     </div>
 
 
-                    <div class="item-price">
-
-                        R$
-                        <?= number_format(
-                            $item['subtotal'],
-                            2,
-                            ',',
-                            '.'
-                        ) ?>
+                </div>
 
 
-                        <span class="item-unit-price">
+                <div class="item-quantity">
 
-                            R$
-                            <?= number_format(
-                                $item['unit_price'],
-                                2,
-                                ',',
-                                '.'
-                            ) ?>
+                    <?= (int) $item['quantity'] ?>
 
-                            cada
+                    ×
 
-                        </span>
-
-                    </div>
-
+                    R$
+                    <?= number_format(
+                        $item['unit_price'],
+                        2,
+                        ',',
+                        '.'
+                    ) ?>
 
                 </div>
 
-            <?php endforeach; ?>
+
+                <div class="item-price">
+
+                    R$
+                    <?= number_format(
+                        $item['subtotal'],
+                        2,
+                        ',',
+                        '.'
+                    ) ?>
+
+                </div>
 
 
-        </div>
+            </div>
+
+
+        <?php endforeach; ?>
 
 
 
-        <div class="purchase-total">
+        <!-- =================================================
+             TOTAL
+        ================================================== -->
 
-            <span>
-                TOTAL
-            </span>
+        <div class="purchase-total-box">
 
-            <strong>
+
+            <div class="total-label">
+                Total da compra
+            </div>
+
+
+            <div class="total-value">
 
                 R$
                 <?= number_format(
@@ -723,56 +914,78 @@ if ($purchase['paid_at']) {
                     '.'
                 ) ?>
 
-            </strong>
+            </div>
+
 
         </div>
+
 
     </section>
 
 
 
     <!-- =====================================================
-         AÇÕES
+         PAGAMENTO
     ====================================================== -->
 
-    <section class="purchase-detail-card">
-
-        <div class="actions">
+    <section class="payment-box">
 
 
-            <?php if ($purchase['status'] === 'pending'): ?>
+        <?php if (
+            $purchase['status'] === 'pending'
+        ): ?>
 
-                <button
-                    type="button"
-                    class="action-button pay-button"
-                    id="payButton"
-                >
-                    ✅ Marcar como pago
-                </button>
 
-            <?php else: ?>
+            <h2>
+                💳 Pagamento
+            </h2>
 
-                <button
-                    type="button"
-                    class="action-button pay-button"
-                    id="pendingButton"
-                >
-                    ⏳ Voltar para pendente
-                </button>
 
-            <?php endif; ?>
+            <div class="payment-info">
+
+                Esta compra ainda está pendente
+                de pagamento.
+
+            </div>
 
 
             <button
                 type="button"
-                class="action-button delete-button"
-                id="deleteButton"
+                class="payment-button"
+                id="paymentButton"
             >
-                🗑️ Excluir compra
+                ✅ Marcar como pago
             </button>
 
 
-        </div>
+        <?php else: ?>
+
+
+            <h2>
+                ✅ Pagamento confirmado
+            </h2>
+
+
+            <?php if ($purchase['paid_at']): ?>
+
+                <div class="paid-date">
+
+                    Pago em
+
+                    <?= date(
+                        'd/m/Y \à\s H:i',
+                        strtotime(
+                            $purchase['paid_at']
+                        )
+                    ) ?>
+
+                </div>
+
+            <?php endif; ?>
+
+
+        <?php endif; ?>
+
 
     </section>
 
@@ -780,209 +993,97 @@ if ($purchase['paid_at']) {
 </main>
 
 
+<?php require_once __DIR__ . '/includes/footer.php'; ?>
+
 
 <script>
 
-const purchaseId =
-    <?= (int) $purchase['id'] ?>;
-
-
-/*
-|--------------------------------------------------------------------------
-| MARCAR COMO PAGO / PENDENTE
-|--------------------------------------------------------------------------
-*/
-
-const payButton =
-    document.getElementById('payButton');
-
-const pendingButton =
-    document.getElementById('pendingButton');
-
-
-async function changeStatus(status) {
-
-    const message =
-        status === 'paid'
-
-            ? 'Marcar esta compra como paga?'
-
-            : 'Voltar esta compra para pendente?';
-
-
-    if (!confirm(message)) {
-        return;
-    }
-
-
-    try {
-
-        const response =
-            await fetch(
-                '../api/purchase-status.php',
-                {
-
-                    method: 'POST',
-
-                    headers: {
-                        'Content-Type':
-                            'application/json'
-                    },
-
-                    body:
-                        JSON.stringify({
-
-                            purchase_id:
-                                purchaseId,
-
-                            status
-
-                        })
-
-                }
-            );
-
-
-        const data =
-            await response.json();
-
-
-        if (!response.ok || !data.success) {
-
-            throw new Error(
-                data.message ||
-                'Não foi possível alterar o status.'
-            );
-
-        }
-
-
-        alert(
-            'Status atualizado com sucesso! ✅'
-        );
-
-
-        location.reload();
-
-
-    } catch (error) {
-
-        alert(
-            'Erro:\n\n' +
-            error.message
-        );
-
-    }
-
-}
-
-
-if (payButton) {
-
-    payButton.addEventListener(
-        'click',
-        () => changeStatus('paid')
+const paymentButton =
+    document.getElementById(
+        'paymentButton'
     );
 
-}
 
+if (paymentButton) {
 
-if (pendingButton) {
-
-    pendingButton.addEventListener(
+    paymentButton.addEventListener(
         'click',
-        () => changeStatus('pending')
-    );
+        async () => {
 
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| EXCLUIR
-|--------------------------------------------------------------------------
-*/
-
-const deleteButton =
-    document.getElementById('deleteButton');
-
-
-deleteButton.addEventListener(
-    'click',
-    async () => {
-
-        const confirmed =
-            confirm(
-                'Tem certeza que deseja excluir esta compra?\n\n' +
-                'Os produtos desta compra também serão removidos.'
-            );
-
-
-        if (!confirmed) {
-            return;
-        }
-
-
-        try {
-
-            const response =
-                await fetch(
-                    '../api/delete-purchase.php',
-                    {
-
-                        method: 'POST',
-
-                        headers: {
-                            'Content-Type':
-                                'application/json'
-                        },
-
-                        body:
-                            JSON.stringify({
-
-                                purchase_id:
-                                    purchaseId
-
-                            })
-
-                    }
+            const confirmed =
+                confirm(
+                    'Confirmar o pagamento desta compra?'
                 );
 
 
-            const data =
-                await response.json();
-
-
-            if (!response.ok || !data.success) {
-
-                throw new Error(
-                    data.message ||
-                    'Não foi possível excluir a compra.'
-                );
-
+            if (!confirmed) {
+                return;
             }
 
 
-            alert(
-                'Compra excluída com sucesso! ✅'
-            );
+            paymentButton.disabled = true;
+
+            paymentButton.textContent =
+                'Registrando pagamento...';
 
 
-            window.location.href =
-                'index.php';
+            try {
+
+                const response =
+                    await fetch(
+                        '../api/purchase-payment.php',
+                        {
+                            method: 'POST',
+
+                            headers: {
+                                'Content-Type':
+                                    'application/json'
+                            },
+
+                            body: JSON.stringify({
+                                purchase_id:
+                                    <?= (int) $purchase['id'] ?>
+                            })
+                        }
+                    );
 
 
-        } catch (error) {
+                const data =
+                    await response.json();
 
-            alert(
-                'Erro:\n\n' +
-                error.message
-            );
+
+                if (!data.success) {
+
+                    throw new Error(
+                        data.message ||
+                        'Não foi possível registrar o pagamento.'
+                    );
+
+                }
+
+
+                window.location.reload();
+
+
+            } catch (error) {
+
+                alert(
+                    error.message
+                );
+
+
+                paymentButton.disabled =
+                    false;
+
+                paymentButton.textContent =
+                    '✅ Marcar como pago';
+
+            }
 
         }
+    );
 
-    }
-);
+}
 
 </script>
 

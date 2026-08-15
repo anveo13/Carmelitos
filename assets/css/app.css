@@ -717,3 +717,194 @@ select:focus {
     width: 160px;
 }
 }
+
+/* ========================================
+   MENSAGEM DE COMPRA
+======================================== */
+
+.purchase-message-overlay {
+
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 9999;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 20px;
+
+    background:
+        rgba(0, 0, 0, 0.45);
+
+    backdrop-filter:
+        blur(4px);
+
+}
+
+
+.purchase-message {
+
+    width: min(
+        100%,
+        420px
+    );
+
+    padding: 35px 25px;
+
+    border-radius: 20px;
+
+    background: #fff;
+
+    text-align: center;
+
+    box-shadow:
+        0 20px 60px
+        rgba(0, 0, 0, 0.20);
+
+    animation:
+        purchaseMessageIn
+        0.25s ease;
+}
+
+
+.purchase-message-icon {
+
+    width: 64px;
+
+    height: 64px;
+
+    margin: 0 auto 18px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border-radius: 50%;
+
+    font-size: 32px;
+
+    font-weight: 900;
+}
+
+
+.purchase-message.success
+.purchase-message-icon {
+
+    background: #e5f6eb;
+
+    color: #087331;
+
+}
+
+
+.purchase-message.error
+.purchase-message-icon {
+
+    background: #fdeaea;
+
+    color: #c62828;
+
+}
+
+
+.purchase-message h2 {
+
+    margin: 0;
+
+    color: #173b28;
+
+    font-size: 24px;
+
+}
+
+
+.purchase-message p {
+
+    margin: 10px 0;
+
+    color: #718078;
+
+    line-height: 1.5;
+
+}
+
+
+.purchase-message strong {
+
+    display: block;
+
+    margin: 15px 0 22px;
+
+    color: #02511F;
+
+    font-size: 22px;
+
+}
+
+
+.purchase-message button {
+
+    width: 100%;
+
+    min-height: 48px;
+
+    border: 0;
+
+    border-radius: 10px;
+
+    background: #02511F;
+
+    color: #fff;
+
+    font-size: 14px;
+
+    font-weight: 800;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        transform 0.15s ease;
+}
+
+
+.purchase-message button:hover {
+
+    background: #036d2a;
+
+    transform:
+        translateY(-1px);
+
+}
+
+
+@keyframes purchaseMessageIn {
+
+    from {
+
+        opacity: 0;
+
+        transform:
+            translateY(10px)
+            scale(0.97);
+
+    }
+
+    to {
+
+        opacity: 1;
+
+        transform:
+            translateY(0)
+            scale(1);
+
+    }
+
+}

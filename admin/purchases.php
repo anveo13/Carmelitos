@@ -2,10 +2,26 @@
 
 session_start();
 
+
+/*
+|--------------------------------------------------------------------------
+| AUTENTICAÇÃO
+|--------------------------------------------------------------------------
+*/
+
 if (!isset($_SESSION['admin_id'])) {
+
     header('Location: login.php');
+
     exit;
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| BANCO
+|--------------------------------------------------------------------------
+*/
 
 require_once __DIR__ . '/../config/database.php';
 
@@ -16,16 +32,31 @@ require_once __DIR__ . '/../config/database.php';
 |--------------------------------------------------------------------------
 */
 
-$filter = $_GET['status'] ?? 'all';
+$filter =
+    $_GET['status'] ?? 'all';
+
 
 $allowedFilters = [
+
     'all',
+
     'pending',
+
     'paid'
+
 ];
 
-if (!in_array($filter, $allowedFilters, true)) {
+
+if (
+    !in_array(
+        $filter,
+        $allowedFilters,
+        true
+    )
+) {
+
     $filter = 'all';
+
 }
 
 
@@ -36,11 +67,17 @@ if (!in_array($filter, $allowedFilters, true)) {
 */
 
 $sql = "
+
     SELECT
+
         p.id,
+
         p.total,
+
         p.status,
+
         p.created_at,
+
         p.paid_at,
 
         pe.name AS person_name,
@@ -49,16 +86,24 @@ $sql = "
 
         COUNT(pi.id) AS item_count
 
+
     FROM purchases p
 
+
     INNER JOIN people pe
+
         ON pe.id = p.person_id
 
+
     INNER JOIN teams t
+
         ON t.id = pe.team_id
 
+
     LEFT JOIN purchase_items pi
+
         ON pi.purchase_id = p.id
+
 ";
 
 
@@ -68,34 +113,56 @@ $params = [];
 if ($filter !== 'all') {
 
     $sql .= "
+
         WHERE p.status = ?
+
     ";
 
-    $params[] = $filter;
+    $params[] =
+        $filter;
+
 }
 
 
 $sql .= "
+
     GROUP BY
+
         p.id,
+
         p.total,
+
         p.status,
+
         p.created_at,
+
         p.paid_at,
+
         pe.name,
+
         t.name
 
+
     ORDER BY
+
         p.created_at DESC
+
 ";
 
 
-$stmt = $pdo->prepare($sql);
+$stmt =
+    $pdo->prepare($sql);
 
-$stmt->execute($params);
+
+$stmt->execute(
+    $params
+);
+
 
 $purchases =
-    $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt->fetchAll(
+        PDO::FETCH_ASSOC
+    );
 
 
 /*
@@ -104,24 +171,30 @@ $purchases =
 |--------------------------------------------------------------------------
 */
 
-$countStmt = $pdo->query("
-    SELECT
+$countStmt =
+    $pdo->query("
 
-        COUNT(*) AS total,
+        SELECT
 
-        SUM(
-            status = 'pending'
-        ) AS pending,
+            COUNT(*) AS total,
 
-        SUM(
-            status = 'paid'
-        ) AS paid
+            SUM(
+                status = 'pending'
+            ) AS pending,
 
-    FROM purchases
-");
+            SUM(
+                status = 'paid'
+            ) AS paid
+
+        FROM purchases
+
+    ");
+
 
 $counts =
-    $countStmt->fetch(PDO::FETCH_ASSOC);
+    $countStmt->fetch(
+        PDO::FETCH_ASSOC
+    );
 
 ?>
 
@@ -129,25 +202,41 @@ $counts =
 
 <html lang="pt-BR">
 
+
 <head>
 
+
     <meta charset="UTF-8">
+
 
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
 
+
     <title>
         Compras | Carmelito's
     </title>
+
+
+    <!-- FAVICON -->
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="../assets/images/logo.png"
+    >
+
 
     <link
         rel="stylesheet"
         href="admin.css"
     >
 
+
     <style>
+
 
         /* =====================================================
            PAGE
@@ -161,25 +250,33 @@ $counts =
                     calc(100% - 30px)
                 );
 
-            margin: 0 auto;
+            margin:
+                0 auto;
 
             padding:
                 35px 0 60px;
         }
 
 
+
+        /* =====================================================
+           HEADING
+        ===================================================== */
+
         .page-heading {
 
             display: flex;
 
-            align-items: flex-end;
+            align-items:
+                flex-end;
 
             justify-content:
                 space-between;
 
             gap: 20px;
 
-            margin-bottom: 25px;
+            margin-bottom:
+                25px;
         }
 
 
@@ -187,9 +284,11 @@ $counts =
 
             margin: 0;
 
-            font-size: 30px;
+            font-size:
+                30px;
 
-            color: #123d26;
+            color:
+                #123d26;
         }
 
 
@@ -198,43 +297,56 @@ $counts =
             margin:
                 6px 0 0;
 
-            color: #708078;
+            color:
+                #708078;
         }
 
 
         .new-purchase-button {
 
-            display: inline-flex;
+            display:
+                inline-flex;
 
-            align-items: center;
+            align-items:
+                center;
 
-            justify-content: center;
+            justify-content:
+                center;
 
             gap: 8px;
 
-            min-height: 44px;
+            min-height:
+                44px;
 
             padding:
                 0 18px;
 
-            border-radius: 10px;
+            border-radius:
+                10px;
 
-            background: #02511F;
+            background:
+                #02511F;
 
-            color: white;
+            color:
+                white;
 
-            text-decoration: none;
+            text-decoration:
+                none;
 
-            font-size: 14px;
+            font-size:
+                14px;
 
-            font-weight: 800;
+            font-weight:
+                800;
         }
 
 
         .new-purchase-button:hover {
 
-            background: #036b29;
+            background:
+                #036b29;
         }
+
 
 
         /* =====================================================
@@ -243,52 +355,70 @@ $counts =
 
         .purchase-summary {
 
-            display: grid;
+            display:
+                grid;
 
             grid-template-columns:
                 repeat(3, 1fr);
 
-            gap: 15px;
+            gap:
+                15px;
 
-            margin-bottom: 22px;
+            margin-bottom:
+                22px;
         }
 
 
         .summary-card {
 
-            background: white;
+            background:
+                white;
 
             border:
                 1px solid #e1e7e3;
 
-            border-radius: 15px;
+            border-radius:
+                15px;
 
-            padding: 18px;
+            padding:
+                18px;
 
             box-shadow:
                 0 3px 12px
-                rgba(16, 54, 30, 0.04);
+                rgba(
+                    16,
+                    54,
+                    30,
+                    0.04
+                );
         }
 
 
         .summary-card span {
 
-            display: block;
+            display:
+                block;
 
-            color: #7a857f;
+            color:
+                #7a857f;
 
-            font-size: 13px;
+            font-size:
+                13px;
 
-            margin-bottom: 5px;
+            margin-bottom:
+                5px;
         }
 
 
         .summary-card strong {
 
-            font-size: 24px;
+            font-size:
+                24px;
 
-            color: #123d26;
+            color:
+                #123d26;
         }
+
 
 
         /* =====================================================
@@ -297,52 +427,70 @@ $counts =
 
         .purchase-filters {
 
-            display: flex;
+            display:
+                flex;
 
-            gap: 8px;
+            gap:
+                8px;
 
-            margin-bottom: 20px;
+            margin-bottom:
+                20px;
 
-            overflow-x: auto;
+            overflow-x:
+                auto;
 
-            scrollbar-width: none;
+            scrollbar-width:
+                none;
         }
 
 
         .purchase-filters::-webkit-scrollbar {
-            display: none;
+
+            display:
+                none;
         }
 
 
         .purchase-filter {
 
-            flex-shrink: 0;
+            flex-shrink:
+                0;
 
-            border: 0;
+            border:
+                0;
 
-            border-radius: 9px;
+            border-radius:
+                9px;
 
             padding:
                 10px 15px;
 
-            background: #eef2ef;
+            background:
+                #eef2ef;
 
-            color: #526158;
+            color:
+                #526158;
 
-            text-decoration: none;
+            text-decoration:
+                none;
 
-            font-size: 13px;
+            font-size:
+                13px;
 
-            font-weight: 700;
+            font-weight:
+                700;
         }
 
 
         .purchase-filter.active {
 
-            background: #02511F;
+            background:
+                #02511F;
 
-            color: white;
+            color:
+                white;
         }
+
 
 
         /* =====================================================
@@ -351,29 +499,56 @@ $counts =
 
         .purchase-grid {
 
-            display: grid;
+            display:
+                grid;
 
             grid-template-columns:
                 repeat(2, 1fr);
 
-            gap: 16px;
+            gap:
+                16px;
         }
 
 
+
+        /* =====================================================
+           CARD
+        ===================================================== */
+
         .purchase-card {
 
-            background: white;
+            display:
+                block;
+
+            background:
+                white;
 
             border:
                 1px solid #e1e7e3;
 
-            border-radius: 17px;
+            border-radius:
+                17px;
 
-            padding: 20px;
+            padding:
+                20px;
 
             box-shadow:
                 0 3px 12px
-                rgba(16, 54, 30, 0.04);
+                rgba(
+                    16,
+                    54,
+                    30,
+                    0.04
+                );
+
+            text-decoration:
+                none;
+
+            color:
+                inherit;
+
+            cursor:
+                pointer;
 
             transition:
                 transform 0.2s ease,
@@ -388,85 +563,121 @@ $counts =
 
             box-shadow:
                 0 7px 20px
-                rgba(16, 54, 30, 0.08);
+                rgba(
+                    16,
+                    54,
+                    30,
+                    0.08
+                );
         }
 
 
+
+        /* =====================================================
+           CARD TOP
+        ===================================================== */
+
         .purchase-card-top {
 
-            display: flex;
+            display:
+                flex;
 
-            align-items: flex-start;
+            align-items:
+                flex-start;
 
             justify-content:
                 space-between;
 
-            gap: 15px;
+            gap:
+                15px;
 
-            margin-bottom: 16px;
+            margin-bottom:
+                16px;
         }
 
 
         .purchase-person {
 
-            display: flex;
+            display:
+                flex;
 
-            align-items: center;
+            align-items:
+                center;
 
-            gap: 12px;
+            gap:
+                12px;
         }
 
 
         .person-avatar {
 
-            width: 45px;
+            width:
+                45px;
 
-            height: 45px;
+            height:
+                45px;
 
-            flex-shrink: 0;
+            flex-shrink:
+                0;
 
-            border-radius: 12px;
+            border-radius:
+                12px;
 
-            background: #e7f5eb;
+            background:
+                #e7f5eb;
 
-            display: flex;
+            display:
+                flex;
 
-            align-items: center;
+            align-items:
+                center;
 
-            justify-content: center;
+            justify-content:
+                center;
 
-            font-size: 20px;
+            font-size:
+                20px;
         }
 
 
         .person-name {
 
-            font-size: 15px;
+            font-size:
+                15px;
 
-            font-weight: 800;
+            font-weight:
+                800;
 
-            color: #123d26;
+            color:
+                #123d26;
         }
 
 
         .team-name {
 
-            margin-top: 3px;
+            margin-top:
+                3px;
 
-            color: #7a857f;
+            color:
+                #7a857f;
 
-            font-size: 12px;
+            font-size:
+                12px;
         }
 
 
         .purchase-number {
 
-            color: #8a948e;
+            color:
+                #8a948e;
 
-            font-size: 11px;
+            font-size:
+                11px;
 
-            font-weight: 700;
+            font-weight:
+                700;
         }
+
 
 
         /* =====================================================
@@ -475,45 +686,58 @@ $counts =
 
         .purchase-info {
 
-            display: grid;
+            display:
+                grid;
 
             grid-template-columns:
                 repeat(3, 1fr);
 
-            gap: 8px;
+            gap:
+                8px;
 
-            margin-bottom: 17px;
+            margin-bottom:
+                17px;
         }
 
 
         .info-box {
 
-            background: #f6f8f6;
+            background:
+                #f6f8f6;
 
-            border-radius: 10px;
+            border-radius:
+                10px;
 
-            padding: 11px;
+            padding:
+                11px;
         }
 
 
         .info-box span {
 
-            display: block;
+            display:
+                block;
 
-            color: #87918b;
+            color:
+                #87918b;
 
-            font-size: 10px;
+            font-size:
+                10px;
 
-            margin-bottom: 4px;
+            margin-bottom:
+                4px;
         }
 
 
         .info-box strong {
 
-            color: #183b28;
+            color:
+                #183b28;
 
-            font-size: 13px;
+            font-size:
+                13px;
         }
+
 
 
         /* =====================================================
@@ -522,37 +746,48 @@ $counts =
 
         .purchase-status {
 
-            display: inline-flex;
+            display:
+                inline-flex;
 
-            align-items: center;
+            align-items:
+                center;
 
-            gap: 5px;
+            gap:
+                5px;
 
             padding:
                 6px 9px;
 
-            border-radius: 20px;
+            border-radius:
+                20px;
 
-            font-size: 11px;
+            font-size:
+                11px;
 
-            font-weight: 800;
+            font-weight:
+                800;
         }
 
 
         .purchase-status.pending {
 
-            background: #fff3d6;
+            background:
+                #fff3d6;
 
-            color: #936700;
+            color:
+                #936700;
         }
 
 
         .purchase-status.paid {
 
-            background: #e4f6ea;
+            background:
+                #e4f6ea;
 
-            color: #087331;
+            color:
+                #087331;
         }
+
 
 
         /* =====================================================
@@ -561,16 +796,20 @@ $counts =
 
         .purchase-card-footer {
 
-            display: flex;
+            display:
+                flex;
 
-            align-items: center;
+            align-items:
+                center;
 
             justify-content:
                 space-between;
 
-            gap: 15px;
+            gap:
+                15px;
 
-            padding-top: 15px;
+            padding-top:
+                15px;
 
             border-top:
                 1px solid #edf0ee;
@@ -579,45 +818,58 @@ $counts =
 
         .purchase-total {
 
-            font-size: 21px;
+            font-size:
+                21px;
 
-            font-weight: 900;
+            font-weight:
+                900;
 
-            color: #02511F;
+            color:
+                #02511F;
         }
 
 
         .view-purchase {
 
-            display: inline-flex;
+            display:
+                inline-flex;
 
-            align-items: center;
+            align-items:
+                center;
 
-            justify-content: center;
+            justify-content:
+                center;
 
-            min-height: 38px;
+            min-height:
+                38px;
 
             padding:
                 0 13px;
 
-            border-radius: 9px;
+            border-radius:
+                9px;
 
-            background: #eef5f0;
+            background:
+                #eef5f0;
 
-            color: #02511F;
+            color:
+                #02511F;
 
-            text-decoration: none;
+            font-size:
+                12px;
 
-            font-size: 12px;
-
-            font-weight: 800;
+            font-weight:
+                800;
         }
 
 
-        .view-purchase:hover {
+        .purchase-card:hover
+        .view-purchase {
 
-            background: #dcecdf;
+            background:
+                #dcecdf;
         }
+
 
 
         /* =====================================================
@@ -626,56 +878,73 @@ $counts =
 
         .empty-purchases {
 
-            background: white;
+            background:
+                white;
 
             border:
                 1px solid #e1e7e3;
 
-            border-radius: 17px;
+            border-radius:
+                17px;
 
-            padding: 70px 20px;
+            padding:
+                70px 20px;
 
-            text-align: center;
+            text-align:
+                center;
         }
 
 
         .empty-purchases-icon {
 
-            width: 60px;
+            width:
+                60px;
 
-            height: 60px;
+            height:
+                60px;
 
             margin:
                 0 auto 15px;
 
-            border-radius: 50%;
+            border-radius:
+                50%;
 
-            background: #e7f5eb;
+            background:
+                #e7f5eb;
 
-            display: flex;
+            display:
+                flex;
 
-            align-items: center;
+            align-items:
+                center;
 
-            justify-content: center;
+            justify-content:
+                center;
 
-            font-size: 25px;
+            font-size:
+                25px;
         }
 
 
         .empty-purchases h3 {
 
-            margin: 0;
+            margin:
+                0;
 
-            color: #183b28;
+            color:
+                #183b28;
         }
 
 
         .empty-purchases p {
 
-            margin-top: 6px;
+            margin-top:
+                6px;
 
-            color: #7a857f;
+            color:
+                #7a857f;
         }
+
 
 
         /* =====================================================
@@ -686,7 +955,8 @@ $counts =
 
             .purchase-grid {
 
-                grid-template-columns: 1fr;
+                grid-template-columns:
+                    1fr;
             }
 
         }
@@ -699,39 +969,46 @@ $counts =
                 width:
                     calc(100% - 20px);
 
-                padding-top: 22px;
+                padding-top:
+                    22px;
             }
 
 
             .page-heading {
 
-                align-items: stretch;
+                align-items:
+                    stretch;
 
-                flex-direction: column;
+                flex-direction:
+                    column;
             }
 
 
             .page-heading h1 {
 
-                font-size: 25px;
+                font-size:
+                    25px;
             }
 
 
             .new-purchase-button {
 
-                width: 100%;
+                width:
+                    100%;
             }
 
 
             .purchase-summary {
 
-                grid-template-columns: 1fr;
+                grid-template-columns:
+                    1fr;
             }
 
 
             .purchase-card {
 
-                padding: 16px;
+                padding:
+                    16px;
             }
 
 
@@ -744,15 +1021,18 @@ $counts =
 
             .purchase-card-footer {
 
-                align-items: stretch;
+                align-items:
+                    stretch;
 
-                flex-direction: column;
+                flex-direction:
+                    column;
             }
 
 
             .view-purchase {
 
-                width: 100%;
+                width:
+                    100%;
             }
 
         }
@@ -777,11 +1057,13 @@ $counts =
 
     <div class="page-heading">
 
+
         <div>
 
             <h1>
                 📋 Compras
             </h1>
+
 
             <p>
                 Consulte e gerencie todas as compras.
@@ -794,8 +1076,11 @@ $counts =
             href="purchase.php"
             class="new-purchase-button"
         >
+
             + Nova compra
+
         </a>
+
 
     </div>
 
@@ -814,6 +1099,7 @@ $counts =
                 Todas as compras
             </span>
 
+
             <strong>
                 <?= (int) $counts['total'] ?>
             </strong>
@@ -827,6 +1113,7 @@ $counts =
                 Pendentes
             </span>
 
+
             <strong>
                 <?= (int) $counts['pending'] ?>
             </strong>
@@ -839,6 +1126,7 @@ $counts =
             <span>
                 Pagas
             </span>
+
 
             <strong>
                 <?= (int) $counts['paid'] ?>
@@ -862,10 +1150,14 @@ $counts =
             href="purchases.php?status=all"
             class="
                 purchase-filter
-                <?= $filter === 'all' ? 'active' : '' ?>
+                <?= $filter === 'all'
+                    ? 'active'
+                    : '' ?>
             "
         >
+
             Todas
+
         </a>
 
 
@@ -873,10 +1165,14 @@ $counts =
             href="purchases.php?status=pending"
             class="
                 purchase-filter
-                <?= $filter === 'pending' ? 'active' : '' ?>
+                <?= $filter === 'pending'
+                    ? 'active'
+                    : '' ?>
             "
         >
+
             ⏳ Pendentes
+
         </a>
 
 
@@ -884,10 +1180,14 @@ $counts =
             href="purchases.php?status=paid"
             class="
                 purchase-filter
-                <?= $filter === 'paid' ? 'active' : '' ?>
+                <?= $filter === 'paid'
+                    ? 'active'
+                    : '' ?>
             "
         >
+
             ✅ Pagas
+
         </a>
 
 
@@ -899,56 +1199,89 @@ $counts =
          COMPRAS
     ====================================================== -->
 
-    <?php if (count($purchases) > 0): ?>
+    <?php if (
+        count($purchases) > 0
+    ): ?>
 
 
         <section class="purchase-grid">
 
 
-            <?php foreach ($purchases as $purchase): ?>
+            <?php foreach (
+                $purchases
+                as $purchase
+            ): ?>
 
 
-                <article class="purchase-card">
+                <a
+                    href="
+                        purchase-view.php?id=
+                        <?= (int) $purchase['id'] ?>
+                    "
+                    class="purchase-card"
+                >
 
+
+                    <!-- =====================================
+                         TOPO
+                    ====================================== -->
 
                     <div class="purchase-card-top">
 
 
                         <div class="purchase-person">
 
+
                             <div class="person-avatar">
+
                                 👤
+
                             </div>
 
 
                             <div>
 
-                                <div class="person-name">
+
+                                <div
+                                    class="person-name"
+                                >
 
                                     <?= htmlspecialchars(
-                                        $purchase['person_name']
+                                        $purchase[
+                                            'person_name'
+                                        ]
                                     ) ?>
 
                                 </div>
 
 
-                                <div class="team-name">
+                                <div
+                                    class="team-name"
+                                >
 
                                     👥
+
                                     <?= htmlspecialchars(
-                                        $purchase['team_name']
+                                        $purchase[
+                                            'team_name'
+                                        ]
                                     ) ?>
 
                                 </div>
 
+
                             </div>
+
 
                         </div>
 
 
-                        <div class="purchase-number">
+                        <div
+                            class="purchase-number"
+                        >
 
-                            #<?= (int) $purchase['id'] ?>
+                            #<?= (int)
+                                $purchase['id'] ?>
 
                         </div>
 
@@ -957,60 +1290,92 @@ $counts =
 
 
 
+                    <!-- =====================================
+                         INFORMAÇÕES
+                    ====================================== -->
+
                     <div class="purchase-info">
 
 
+                        <!-- PRODUTOS -->
+
                         <div class="info-box">
+
 
                             <span>
                                 Produtos
                             </span>
 
+
                             <strong>
 
-                                <?= (int) $purchase['item_count'] ?>
+                                <?= (int)
+                                    $purchase[
+                                        'item_count'
+                                    ] ?>
 
-                                <?= $purchase['item_count'] == 1
+
+                                <?= $purchase[
+                                    'item_count'
+                                ] == 1
                                     ? 'item'
                                     : 'itens'
                                 ?>
 
                             </strong>
 
+
                         </div>
 
 
+
+                        <!-- DATA -->
+
                         <div class="info-box">
+
 
                             <span>
                                 Data
                             </span>
+
 
                             <strong>
 
                                 <?= date(
                                     'd/m/Y',
                                     strtotime(
-                                        $purchase['created_at']
+                                        $purchase[
+                                            'created_at'
+                                        ]
                                     )
                                 ) ?>
 
                             </strong>
 
+
                         </div>
 
 
+
+                        <!-- SITUAÇÃO -->
+
                         <div class="info-box">
+
 
                             <span>
                                 Situação
                             </span>
 
+
                             <strong>
 
+
                                 <?php if (
-                                    $purchase['status'] === 'paid'
+                                    $purchase[
+                                        'status'
+                                    ] === 'paid'
                                 ): ?>
+
 
                                     <span
                                         class="
@@ -1018,10 +1383,14 @@ $counts =
                                             paid
                                         "
                                     >
+
                                         ✅ Pago
+
                                     </span>
 
+
                                 <?php else: ?>
+
 
                                     <span
                                         class="
@@ -1029,12 +1398,17 @@ $counts =
                                             pending
                                         "
                                     >
+
                                         ⏳ Pendente
+
                                     </span>
+
 
                                 <?php endif; ?>
 
+
                             </strong>
+
 
                         </div>
 
@@ -1043,12 +1417,25 @@ $counts =
 
 
 
-                    <div class="purchase-card-footer">
+                    <!-- =====================================
+                         RODAPÉ
+                    ====================================== -->
+
+                    <div
+                        class="
+                            purchase-card-footer
+                        "
+                    >
 
 
-                        <div class="purchase-total">
+                        <div
+                            class="
+                                purchase-total
+                            "
+                        >
 
                             R$
+
                             <?= number_format(
                                 $purchase['total'],
                                 2,
@@ -1059,21 +1446,19 @@ $counts =
                         </div>
 
 
-                        <a
-                            href="
-                                purchase-view.php?id=
-                                <?= (int) $purchase['id'] ?>
-                            "
+                        <span
                             class="view-purchase"
                         >
+
                             Ver compra →
-                        </a>
+
+                        </span>
 
 
                     </div>
 
 
-                </article>
+                </a>
 
 
             <?php endforeach; ?>
@@ -1087,18 +1472,26 @@ $counts =
 
         <div class="empty-purchases">
 
-            <div class="empty-purchases-icon">
+
+            <div
+                class="empty-purchases-icon"
+            >
+
                 📋
+
             </div>
+
 
             <h3>
                 Nenhuma compra encontrada
             </h3>
 
+
             <p>
                 Ainda não existem compras
                 neste filtro.
             </p>
+
 
         </div>
 

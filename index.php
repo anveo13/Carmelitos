@@ -10,7 +10,11 @@
     >
 
     <title>Carmelito's Minimercado</title>
-
+    <link
+        rel="icon"
+        type="image/png"
+        href="assets/images/logo.png"
+    >
     <link
         rel="stylesheet"
         href="assets/css/app.css"

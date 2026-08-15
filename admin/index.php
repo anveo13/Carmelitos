@@ -25,7 +25,6 @@ $teams = [];
 
 $allLists = [
     $stats['pagos'],
-    $stats['pendentes'],
     $stats['devendo'],
     $stats['nao_utilizados']
 ];
@@ -35,7 +34,10 @@ foreach ($allLists as $list) {
     foreach ($list as $item) {
 
         if (!empty($item['team_name'])) {
-            $teams[$item['team_name']] = $item['team_name'];
+
+            $teams[$item['team_name']] =
+                $item['team_name'];
+
         }
 
     }
@@ -47,6 +49,7 @@ ksort($teams);
 ?>
 
 <!DOCTYPE html>
+
 <html lang="pt-BR">
 
 <head>
@@ -58,12 +61,15 @@ ksort($teams);
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Dashboard | Carmelito's</title>
+    <title>
+        Dashboard | Carmelito's
+    </title>
 
     <link
         rel="stylesheet"
         href="admin.css"
     >
+
 
     <style>
 
@@ -72,43 +78,76 @@ ksort($teams);
         ========================================================= */
 
         .status-tools {
+
             display: flex;
+
             gap: 12px;
+
             margin-top: 22px;
+
             flex-wrap: wrap;
         }
 
+
         .status-search {
+
             flex: 1;
+
             min-width: 220px;
+
             padding: 12px 15px;
-            border: 1px solid #dfe5e1;
+
+            border:
+                1px solid #dfe5e1;
+
             border-radius: 10px;
+
             font-size: 14px;
+
             outline: none;
+
             background: #fff;
         }
+
 
         .status-search:focus {
+
             border-color: #006b2d;
-            box-shadow: 0 0 0 3px rgba(0, 107, 45, 0.08);
+
+            box-shadow:
+                0 0 0 3px
+                rgba(0, 107, 45, 0.08);
         }
 
+
         .team-filter {
+
             min-width: 190px;
+
             padding: 12px 15px;
-            border: 1px solid #dfe5e1;
+
+            border:
+                1px solid #dfe5e1;
+
             border-radius: 10px;
+
             font-size: 14px;
+
             background: #fff;
+
             color: #173b28;
+
             outline: none;
+
             cursor: pointer;
         }
 
+
         .team-filter:focus {
+
             border-color: #006b2d;
         }
+
 
 
         /* =========================================================
@@ -116,75 +155,113 @@ ksort($teams);
         ========================================================= */
 
         .records-list {
-    padding: 22px;
 
-    display: grid;
+            padding: 22px;
 
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+            display: grid;
 
-    gap: 16px;
-}
+            grid-template-columns:
+                repeat(
+                    4,
+                    minmax(0, 1fr)
+                );
+
+            gap: 16px;
+        }
+
 
         .record-card {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: space-between;
 
-    min-height: 150px;
+            display: flex;
 
-    padding: 18px;
+            flex-direction: column;
 
-    border: 1px solid #e6ebe8;
-    border-radius: 14px;
+            align-items: flex-start;
 
-    background: #fff;
+            justify-content: space-between;
 
-    transition:
-        transform 0.15s ease,
-        box-shadow 0.15s ease;
-}
+            min-height: 150px;
 
-.record-card:hover {
-    transform: translateY(-2px);
+            padding: 18px;
 
-    box-shadow:
-        0 6px 18px rgba(0, 0, 0, 0.07);
-}
+            border:
+                1px solid #e6ebe8;
+
+            border-radius: 14px;
+
+            background: #fff;
+
+            text-decoration: none;
+
+            color: inherit;
+
+            transition:
+                transform 0.15s ease,
+                box-shadow 0.15s ease;
+        }
+
+
+        .record-card:hover {
+
+            transform:
+                translateY(-2px);
+
+            box-shadow:
+                0 6px 18px
+                rgba(0, 0, 0, 0.07);
+        }
 
 
         .record-info {
+
             min-width: 0;
         }
 
+
         .record-name {
+
             margin: 0;
+
             font-size: 16px;
+
             font-weight: 700;
+
             color: #123b25;
         }
 
+
         .record-team {
+
             margin-top: 5px;
+
             color: #718078;
+
             font-size: 13px;
         }
 
+
         .record-date {
+
             margin-top: 5px;
+
             color: #9aa49e;
+
             font-size: 12px;
         }
 
 
         .record-right {
+
             width: 100%;
 
             margin-top: auto;
+
             padding-top: 15px;
 
             display: flex;
+
             align-items: center;
+
             justify-content: space-between;
 
             gap: 10px;
@@ -192,42 +269,58 @@ ksort($teams);
             text-align: left;
         }
 
+
         .record-value {
+
             display: block;
+
             font-size: 17px;
+
             font-weight: 700;
+
             color: #123b25;
         }
 
 
         .record-status {
+
             display: inline-block;
+
             margin-top: 6px;
+
             padding: 5px 9px;
+
             border-radius: 20px;
+
             font-size: 11px;
+
             font-weight: 600;
         }
 
+
         .record-status.paid {
+
             background: #e5f6eb;
+
             color: #087331;
         }
 
-        .record-status.pending {
-            background: #fff4d8;
-            color: #996900;
-        }
 
         .record-status.debt {
+
             background: #fff0e7;
+
             color: #b34b00;
         }
 
+
         .record-status.unused {
+
             background: #f0f1f1;
+
             color: #6c7470;
         }
+
 
 
         /* =========================================================
@@ -235,19 +328,26 @@ ksort($teams);
         ========================================================= */
 
         .records-header {
+
             padding: 18px 22px 0;
 
             display: flex;
+
             align-items: center;
+
             justify-content: space-between;
 
             gap: 15px;
         }
 
+
         .records-count {
+
             color: #7a857f;
+
             font-size: 13px;
         }
+
 
 
         /* =========================================================
@@ -255,8 +355,10 @@ ksort($teams);
         ========================================================= */
 
         .empty-state {
+
             padding: 60px 20px;
         }
+
 
 
         /* =========================================================
@@ -266,38 +368,55 @@ ksort($teams);
         @media (max-width: 700px) {
 
             .status-tools {
+
                 flex-direction: column;
             }
 
+
             .records-list {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }  
+
+                grid-template-columns:
+                    repeat(
+                        2,
+                        minmax(0, 1fr)
+                    );
+
+                padding: 15px;
+            }
+
 
             .status-search,
             .team-filter {
+
                 width: 100%;
+
                 min-width: 0;
             }
 
-            .records-list {
-                padding: 15px;
-            }
 
             .record-card {
+
                 padding: 15px;
 
-                align-items: flex-start;
+                align-items:
+                    flex-start;
             }
+
 
             .record-name {
+
                 font-size: 15px;
             }
+
 
             .record-value {
+
                 font-size: 15px;
             }
 
+
             .record-team {
+
                 font-size: 12px;
             }
 
@@ -312,7 +431,6 @@ ksort($teams);
 
 
 <?php require_once __DIR__ . '/includes/header.php'; ?>
-
 
 
 <main class="dashboard">
@@ -347,6 +465,8 @@ ksort($teams);
     <section class="stats">
 
 
+        <!-- VALOR PAGO -->
+
         <div class="stat-card">
 
             <div class="stat-icon paid">
@@ -360,13 +480,16 @@ ksort($teams);
                 </span>
 
                 <strong>
+
                     R$
+
                     <?= number_format(
                         $stats['valor_pago'],
                         2,
                         ',',
                         '.'
                     ) ?>
+
                 </strong>
 
             </div>
@@ -374,6 +497,8 @@ ksort($teams);
         </div>
 
 
+
+        <!-- VALOR PENDENTE -->
 
         <div class="stat-card">
 
@@ -388,13 +513,16 @@ ksort($teams);
                 </span>
 
                 <strong>
+
                     R$
+
                     <?= number_format(
                         $stats['valor_pendente'],
                         2,
                         ',',
                         '.'
                     ) ?>
+
                 </strong>
 
             </div>
@@ -402,6 +530,8 @@ ksort($teams);
         </div>
 
 
+
+        <!-- PESSOAS -->
 
         <div class="stat-card">
 
@@ -424,6 +554,8 @@ ksort($teams);
         </div>
 
 
+
+        <!-- COMPRAS -->
 
         <div class="stat-card">
 
@@ -463,7 +595,9 @@ ksort($teams);
 
 
 
-        <!-- ABAS -->
+        <!-- =====================================================
+             ABAS
+        ====================================================== -->
 
         <div class="status-tabs">
 
@@ -471,7 +605,6 @@ ksort($teams);
             <button
                 class="status-tab active"
                 data-status="paid"
-                type="button"
             >
                 ✅ Pago
             </button>
@@ -479,17 +612,7 @@ ksort($teams);
 
             <button
                 class="status-tab"
-                data-status="pending"
-                type="button"
-            >
-                ⏳ Pendente
-            </button>
-
-
-            <button
-                class="status-tab"
                 data-status="debt"
-                type="button"
             >
                 ⚠️ Devendo
             </button>
@@ -498,7 +621,6 @@ ksort($teams);
             <button
                 class="status-tab"
                 data-status="unused"
-                type="button"
             >
                 🚫 Não utilizado
             </button>
@@ -536,8 +658,12 @@ ksort($teams);
 
                 <?php foreach ($teams as $team): ?>
 
-                    <option value="<?= htmlspecialchars($team) ?>">
+                    <option
+                        value="<?= htmlspecialchars($team) ?>"
+                    >
+
                         <?= htmlspecialchars($team) ?>
+
                     </option>
 
                 <?php endforeach; ?>
@@ -559,6 +685,7 @@ ksort($teams);
             <span>
                 Registros
             </span>
+
 
             <span
                 class="records-count"
@@ -604,39 +731,26 @@ ksort($teams);
 const records = {
 
     paid:
+
         <?= json_encode(
             $stats['pagos'],
-            JSON_HEX_TAG |
-            JSON_HEX_APOS |
-            JSON_HEX_QUOT |
-            JSON_HEX_AMP
+            JSON_UNESCAPED_UNICODE
         ) ?>,
 
-    pending:
-        <?= json_encode(
-            $stats['pendentes'],
-            JSON_HEX_TAG |
-            JSON_HEX_APOS |
-            JSON_HEX_QUOT |
-            JSON_HEX_AMP
-        ) ?>,
 
     debt:
+
         <?= json_encode(
             $stats['devendo'],
-            JSON_HEX_TAG |
-            JSON_HEX_APOS |
-            JSON_HEX_QUOT |
-            JSON_HEX_AMP
+            JSON_UNESCAPED_UNICODE
         ) ?>,
 
+
     unused:
+
         <?= json_encode(
             $stats['nao_utilizados'],
-            JSON_HEX_TAG |
-            JSON_HEX_APOS |
-            JSON_HEX_QUOT |
-            JSON_HEX_AMP
+            JSON_UNESCAPED_UNICODE
         ) ?>
 
 };
@@ -650,19 +764,33 @@ const records = {
 */
 
 const tabs =
-    document.querySelectorAll('.status-tab');
+    document.querySelectorAll(
+        '.status-tab'
+    );
+
 
 const content =
-    document.getElementById('statusContent');
+    document.getElementById(
+        'statusContent'
+    );
+
 
 const searchInput =
-    document.getElementById('searchInput');
+    document.getElementById(
+        'searchInput'
+    );
+
 
 const teamFilter =
-    document.getElementById('teamFilter');
+    document.getElementById(
+        'teamFilter'
+    );
+
 
 const recordsCount =
-    document.getElementById('recordsCount');
+    document.getElementById(
+        'recordsCount'
+    );
 
 
 
@@ -672,7 +800,8 @@ const recordsCount =
 |--------------------------------------------------------------------------
 */
 
-let currentStatus = 'paid';
+let currentStatus =
+    'paid';
 
 
 
@@ -685,10 +814,13 @@ let currentStatus = 'paid';
 function formatMoney(value) {
 
     return Number(value || 0)
-        .toLocaleString('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-        });
+        .toLocaleString(
+            'pt-BR',
+            {
+                style: 'currency',
+                currency: 'BRL'
+            }
+        );
 
 }
 
@@ -703,15 +835,27 @@ function formatMoney(value) {
 function formatDate(date) {
 
     if (!date) {
+
         return '';
+
     }
+
 
     const parsed =
-        new Date(date.replace(' ', 'T'));
+        new Date(
+            date.replace(
+                ' ',
+                'T'
+            )
+        );
+
 
     if (isNaN(parsed)) {
+
         return date;
+
     }
+
 
     return parsed.toLocaleDateString(
         'pt-BR'
@@ -731,17 +875,47 @@ function getStatusLabel(status) {
 
     const labels = {
 
-        paid: 'Pago',
+        paid:
+            'Pago',
 
-        pending: 'Pendente',
+        debt:
+            'Devendo',
 
-        debt: 'Devendo',
-
-        unused: 'Não utilizado'
+        unused:
+            'Não utilizado'
 
     };
 
+
     return labels[status] || '';
+
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| LINK DO REGISTRO
+|--------------------------------------------------------------------------
+*/
+
+function getRecordLink(item) {
+
+    if (currentStatus === 'debt' && item.id) {
+
+        return `person-purchases.php?id=${item.id}`;
+
+    }
+
+
+    if (item.id) {
+
+        return `person.php?id=${item.id}`;
+
+    }
+
+
+    return '#';
 
 }
 
@@ -770,37 +944,48 @@ function renderRecords() {
         teamFilter.value;
 
 
+
     /*
     |--------------------------------------------------------------------------
     | FILTROS
     |--------------------------------------------------------------------------
     */
 
-    list = list.filter(item => {
+    list = list.filter(
+        item => {
+
+            const name =
+                String(
+                    item.name || ''
+                )
+                    .toLowerCase();
 
 
-        const name =
-            String(item.name || '')
-                .toLowerCase();
+            const itemTeam =
+                String(
+                    item.team_name || ''
+                );
 
 
-        const itemTeam =
-            String(item.team_name || '');
+            const matchesName =
+                !search ||
+                name.includes(
+                    search
+                );
 
 
-        const matchesName =
-            !search ||
-            name.includes(search);
+            const matchesTeam =
+                !team ||
+                itemTeam === team;
 
 
-        const matchesTeam =
-            !team ||
-            itemTeam === team;
+            return (
+                matchesName &&
+                matchesTeam
+            );
 
-
-        return matchesName && matchesTeam;
-
-    });
+        }
+    );
 
 
 
@@ -811,6 +996,7 @@ function renderRecords() {
     */
 
     recordsCount.textContent =
+
         `${list.length} ${
             list.length === 1
                 ? 'registro'
@@ -835,9 +1021,11 @@ function renderRecords() {
                     📋
                 </div>
 
+
                 <h3>
                     Nenhum registro
                 </h3>
+
 
                 <p>
                     Nenhum registro encontrado
@@ -847,6 +1035,7 @@ function renderRecords() {
             </div>
 
         `;
+
 
         return;
 
@@ -861,117 +1050,161 @@ function renderRecords() {
     */
 
     const listHTML =
-        list.map(item => {
+
+        list.map(
+            item => {
 
 
-            let value = null;
+                let value = null;
 
-            let date = '';
-
-
-            /*
-            | Pago
-            */
-
-            if (currentStatus === 'paid') {
-
-                value = item.total;
-
-                date = item.paid_at;
-
-            }
-
-
-            /*
-            | Pendente
-            */
-
-            else if (currentStatus === 'pending') {
-
-                value = item.total;
-
-                date = item.created_at;
-
-            }
-
-
-            /*
-            | Devendo
-            */
-
-            else if (currentStatus === 'debt') {
-
-                value = item.total;
-
-            }
+                let date = '';
 
 
 
-            return `
+                /*
+                |--------------------------------------------------------------------------
+                | PAGO
+                |--------------------------------------------------------------------------
+                */
 
-                <div class="record-card">
+                if (
+                    currentStatus === 'paid'
+                ) {
 
-                    <div class="record-info">
+                    value =
+                        item.total;
 
-                        <h3 class="record-name">
-                            ${escapeHTML(item.name)}
-                        </h3>
+                    date =
+                        item.paid_at;
 
-                        <div class="record-team">
+                }
 
-                            👥
-                            ${escapeHTML(
-                                item.team_name || 'Sem equipe'
-                            )}
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | DEVENDO
+                |--------------------------------------------------------------------------
+                */
+
+                else if (
+                    currentStatus === 'debt'
+                ) {
+
+                    value =
+                        item.total;
+
+                }
+
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | CARD
+                |--------------------------------------------------------------------------
+                */
+
+                return `
+
+                    <a
+                        href="${getRecordLink(item)}"
+                        class="record-card"
+                    >
+
+
+                        <div class="record-info">
+
+
+                            <h3 class="record-name">
+
+                                ${escapeHTML(
+                                    item.name
+                                )}
+
+                            </h3>
+
+
+                            <div class="record-team">
+
+                                👥
+
+                                ${escapeHTML(
+                                    item.team_name ||
+                                    'Sem equipe'
+                                )}
+
+                            </div>
+
+
+                            ${
+                                date
+                                    ? `
+                                        <div
+                                            class="record-date"
+                                        >
+
+                                            📅
+
+                                            ${formatDate(
+                                                date
+                                            )}
+
+                                        </div>
+                                      `
+                                    : ''
+                            }
+
 
                         </div>
 
-                        ${
-                            date
-                                ? `
-                                    <div class="record-date">
-                                        📅 ${formatDate(date)}
-                                    </div>
-                                  `
-                                : ''
-                        }
-
-                    </div>
 
 
-                    <div class="record-right">
-
-                        ${
-                            value !== null
-                                ? `
-                                    <span class="record-value">
-                                        ${formatMoney(value)}
-                                    </span>
-                                  `
-                                : ''
-                        }
+                        <div class="record-right">
 
 
-                        <span
-                            class="
-                                record-status
-                                ${currentStatus}
-                            "
-                        >
+                            ${
+                                value !== null
+                                    ? `
 
-                            ${getStatusLabel(
-                                currentStatus
-                            )}
+                                        <span
+                                            class="record-value"
+                                        >
 
-                        </span>
+                                            ${formatMoney(
+                                                value
+                                            )}
 
-                    </div>
+                                        </span>
 
-                </div>
+                                      `
+                                    : ''
+                            }
 
-            `;
 
-        }).join('');
+                            <span
+                                class="
+                                    record-status
+                                    ${currentStatus}
+                                "
+                            >
+
+                                ${getStatusLabel(
+                                    currentStatus
+                                )}
+
+                            </span>
+
+
+                        </div>
+
+
+                    </a>
+
+                `;
+
+            }
+        )
+        .join('');
 
 
 
@@ -1001,12 +1234,34 @@ function renderRecords() {
 
 function escapeHTML(value) {
 
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+    return String(
+        value ?? ''
+    )
+
+        .replace(
+            /&/g,
+            '&amp;'
+        )
+
+        .replace(
+            /</g,
+            '&lt;'
+        )
+
+        .replace(
+            />/g,
+            '&gt;'
+        )
+
+        .replace(
+            /"/g,
+            '&quot;'
+        )
+
+        .replace(
+            /'/g,
+            '&#039;'
+        );
 
 }
 
@@ -1018,37 +1273,41 @@ function escapeHTML(value) {
 |--------------------------------------------------------------------------
 */
 
-tabs.forEach(tab => {
+tabs.forEach(
+    tab => {
 
-    tab.addEventListener(
-        'click',
-        () => {
+        tab.addEventListener(
+            'click',
+            () => {
 
 
-            tabs.forEach(item => {
+                tabs.forEach(
+                    item => {
 
-                item.classList.remove(
+                        item.classList.remove(
+                            'active'
+                        );
+
+                    }
+                );
+
+
+                tab.classList.add(
                     'active'
                 );
 
-            });
+
+                currentStatus =
+                    tab.dataset.status;
 
 
-            tab.classList.add(
-                'active'
-            );
+                renderRecords();
 
+            }
+        );
 
-            currentStatus =
-                tab.dataset.status;
-
-
-            renderRecords();
-
-        }
-    );
-
-});
+    }
+);
 
 
 
@@ -1088,7 +1347,10 @@ renderRecords();
 
 </script>
 
+
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
+
+
 </body>
 
 </html>
