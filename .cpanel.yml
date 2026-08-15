@@ -5,4 +5,5 @@ deployment:
     - /bin/cp -R admin $DEPLOYPATH
     - /bin/cp -R api $DEPLOYPATH
     - /bin/cp -R assets $DEPLOYPATH
+    - /bin/cp -R config $DEPLOYPATH
     - /bin/cp index.php $DEPLOYPATH
