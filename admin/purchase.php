@@ -92,7 +92,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         .back-button {
             text-decoration: none;
-            color: #E69C2F;
+            color: #02511F;
             font-weight: 600;
         }
 
@@ -136,7 +136,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .form-group select:focus {
-            border-color: #E69C2F;
+            border-color: #02511F;
         }
 
         .products-search {
@@ -151,7 +151,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .products-search:focus {
-            border-color: #E69C2F;
+            border-color: #02511F;
         }
 
         .category {
@@ -161,7 +161,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .category h3 {
             font-size: 15px;
             margin-bottom: 10px;
-            color: #E69C2F;
+            color: #02511F;
         }
 
         .product-grid {
