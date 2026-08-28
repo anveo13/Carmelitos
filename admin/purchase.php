@@ -182,13 +182,13 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .product-button:hover {
-            border-color: #E69C2F;
+            border-color: #02511F;
             background: #FFF3DF;
         }
 
         /* Produto selecionado — apenas visual */
         .product-button.selected {
-            border-color: #E69C2F;
+            border-color: #02511F;
             background: #FFF3DF;
             box-shadow: 0 0 0 2px rgba(230, 156, 47, 0.14);
         }
@@ -201,7 +201,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .product-price {
-            color: #E69C2F;
+            color: #02511F;
             font-size: 13px;
             font-weight: 700;
         }
@@ -277,7 +277,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         .purchase-total strong {
             font-size: 28px;
-            color: #E69C2F;
+            color: #02511F;
         }
 
         .status-options {
@@ -304,9 +304,9 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .status-option input:checked + label {
-            border-color: #E69C2F;
+            border-color: #02511F;
             background: #FFF3DF;
-            color: #E69C2F;
+            color: #02511F;
         }
 
         .save-button {
@@ -354,7 +354,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             padding: 0 12px;
             border-radius: 11px;
             background: #FFF3DF;
-            color: #E69C2F;
+            color: #02511F;
             font-size: 16px;
             font-weight: 800;
         }
@@ -374,7 +374,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         #manualAmount:focus {
-            border-color: #E69C2F;
+            border-color: #02511F;
             box-shadow: 0 0 0 3px rgba(230, 156, 47, 0.12);
         }
 
@@ -383,7 +383,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             min-height: 48px;
             border: 0;
             border-radius: 11px;
-            background: #E69C2F;
+            background: #02511F;
             color: #fff;
             font-size: 14px;
             font-weight: 800;
