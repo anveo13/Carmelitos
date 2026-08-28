@@ -117,6 +117,66 @@ $status = $input['status'] ?? 'pending';
 
 $items = $input['items'] ?? [];
 
+$manualAmount = $input['manual_amount'] ?? null;
+
+
+/*
+|--------------------------------------------------------------------------
+| VALIDAR VALOR MANUAL
+|--------------------------------------------------------------------------
+|
+| Aceita tanto "47,36" quanto "47.36".
+|
+*/
+
+if (
+    $manualAmount !== null &&
+    $manualAmount !== ''
+) {
+
+    $manualAmount = str_replace(
+        ',',
+        '.',
+        trim((string) $manualAmount)
+    );
+
+
+    if (
+        !is_numeric($manualAmount) ||
+        (float) $manualAmount <= 0
+    ) {
+
+        http_response_code(400);
+
+        echo json_encode([
+            'success' => false,
+            'message' => 'Valor manual inválido.'
+        ], JSON_UNESCAPED_UNICODE);
+
+        exit;
+    }
+
+
+    $manualAmount = round(
+        (float) $manualAmount,
+        2
+    );
+
+} else {
+
+    $manualAmount = null;
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| TIPO DA COMPRA
+|--------------------------------------------------------------------------
+*/
+
+$isManual = $manualAmount !== null;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -154,9 +214,18 @@ if (!in_array(
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| VALIDAR PRODUTOS QUANDO NÃO FOR MANUAL
+|--------------------------------------------------------------------------
+*/
+
 if (
-    !is_array($items) ||
-    count($items) === 0
+    !$isManual &&
+    (
+        !is_array($items) ||
+        count($items) === 0
+    )
 ) {
 
     http_response_code(400);
@@ -199,6 +268,7 @@ try {
         $personId
     ]);
 
+
     if (!$stmt->fetch()) {
 
         throw new Exception(
@@ -214,113 +284,131 @@ try {
     |--------------------------------------------------------------------------
     */
 
-    $productStmt = $pdo->prepare("
-        SELECT
-            id,
-            price
-        FROM products
-        WHERE id = ?
-          AND active = 1
-        LIMIT 1
-    ");
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | CALCULAR TOTAL
-    |--------------------------------------------------------------------------
-    */
-
     $validatedItems = [];
 
     $total = 0;
 
 
-    foreach ($items as $item) {
+    /*
+    |--------------------------------------------------------------------------
+    | COMPRA MANUAL
+    |--------------------------------------------------------------------------
+    */
 
-        $productId = filter_var(
-            $item['product_id'] ?? null,
-            FILTER_VALIDATE_INT
-        );
+    if ($isManual) {
 
-        $quantity = filter_var(
-            $item['quantity'] ?? null,
-            FILTER_VALIDATE_INT
-        );
+        $total = $manualAmount;
+
+    }
 
 
-        if (!$productId || !$quantity) {
+    /*
+    |--------------------------------------------------------------------------
+    | COMPRA NORMAL
+    |--------------------------------------------------------------------------
+    */
 
-            throw new Exception(
-                'Produto ou quantidade inválida.'
+    else {
+
+        $productStmt = $pdo->prepare("
+            SELECT
+                id,
+                price
+            FROM products
+            WHERE id = ?
+              AND active = 1
+            LIMIT 1
+        ");
+
+
+        foreach ($items as $item) {
+
+            $productId = filter_var(
+                $item['product_id'] ?? null,
+                FILTER_VALIDATE_INT
             );
+
+            $quantity = filter_var(
+                $item['quantity'] ?? null,
+                FILTER_VALIDATE_INT
+            );
+
+
+            if (!$productId || !$quantity) {
+
+                throw new Exception(
+                    'Produto ou quantidade inválida.'
+                );
+
+            }
+
+
+            if ($quantity < 1) {
+
+                throw new Exception(
+                    'Quantidade inválida.'
+                );
+
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | BUSCAR PREÇO NO BANCO
+            |--------------------------------------------------------------------------
+            |
+            | Nunca confiamos no preço enviado pelo navegador.
+            |
+            */
+
+            $productStmt->execute([
+                $productId
+            ]);
+
+
+            $product =
+                $productStmt->fetch(
+                    PDO::FETCH_ASSOC
+                );
+
+
+            if (!$product) {
+
+                throw new Exception(
+                    'Produto não encontrado.'
+                );
+
+            }
+
+
+            $unitPrice =
+                (float) $product['price'];
+
+
+            $subtotal =
+                $unitPrice * $quantity;
+
+
+            $total += $subtotal;
+
+
+            $validatedItems[] = [
+
+                'product_id' =>
+                    $productId,
+
+                'quantity' =>
+                    $quantity,
+
+                'unit_price' =>
+                    $unitPrice,
+
+                'subtotal' =>
+                    $subtotal
+
+            ];
 
         }
-
-
-        if ($quantity < 1) {
-
-            throw new Exception(
-                'Quantidade inválida.'
-            );
-
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | BUSCAR PREÇO NO BANCO
-        |--------------------------------------------------------------------------
-        |
-        | Nunca confiamos no preço enviado pelo navegador.
-        |
-        */
-
-        $productStmt->execute([
-            $productId
-        ]);
-
-        $product =
-            $productStmt->fetch(
-                PDO::FETCH_ASSOC
-            );
-
-
-        if (!$product) {
-
-            throw new Exception(
-                'Produto não encontrado.'
-            );
-
-        }
-
-
-        $unitPrice =
-            (float) $product['price'];
-
-
-        $subtotal =
-            $unitPrice * $quantity;
-
-
-        $total += $subtotal;
-
-
-        $validatedItems[] = [
-
-            'product_id' =>
-                $productId,
-
-            'quantity' =>
-                $quantity,
-
-            'unit_price' =>
-                $unitPrice,
-
-            'subtotal' =>
-                $subtotal
-
-        ];
 
     }
 
@@ -360,6 +448,7 @@ try {
         )
     ");
 
+
     $stmt->execute([
 
         $personId,
@@ -386,43 +475,50 @@ try {
     |--------------------------------------------------------------------------
     | CRIAR ITENS
     |--------------------------------------------------------------------------
+    |
+    | Compra manual não possui produtos.
+    |
     */
 
-    $itemStmt = $pdo->prepare("
-        INSERT INTO purchase_items
-        (
-            purchase_id,
-            product_id,
-            quantity,
-            unit_price,
-            subtotal
-        )
-        VALUES
-        (
-            ?,
-            ?,
-            ?,
-            ?,
-            ?
-        )
-    ");
+    if (!$isManual) {
+
+        $itemStmt = $pdo->prepare("
+            INSERT INTO purchase_items
+            (
+                purchase_id,
+                product_id,
+                quantity,
+                unit_price,
+                subtotal
+            )
+            VALUES
+            (
+                ?,
+                ?,
+                ?,
+                ?,
+                ?
+            )
+        ");
 
 
-    foreach ($validatedItems as $item) {
+        foreach ($validatedItems as $item) {
 
-        $itemStmt->execute([
+            $itemStmt->execute([
 
-            $purchaseId,
+                $purchaseId,
 
-            $item['product_id'],
+                $item['product_id'],
 
-            $item['quantity'],
+                $item['quantity'],
 
-            $item['unit_price'],
+                $item['unit_price'],
 
-            $item['subtotal']
+                $item['subtotal']
 
-        ]);
+            ]);
+
+        }
 
     }
 
@@ -453,7 +549,10 @@ try {
             $purchaseId,
 
         'total' =>
-            $total
+            $total,
+
+        'manual' =>
+            $isManual
 
     ], JSON_UNESCAPED_UNICODE);
 

@@ -92,7 +92,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         .back-button {
             text-decoration: none;
-            color: #02511F;
+            color: #E69C2F;
             font-weight: 600;
         }
 
@@ -131,12 +131,12 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             padding: 0 14px;
             background: white;
             font-size: 15px;
-            color: #183b28;
+            color: #4A4033;
             outline: none;
         }
 
         .form-group select:focus {
-            border-color: #087A3D;
+            border-color: #E69C2F;
         }
 
         .products-search {
@@ -151,7 +151,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .products-search:focus {
-            border-color: #087A3D;
+            border-color: #E69C2F;
         }
 
         .category {
@@ -161,7 +161,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .category h3 {
             font-size: 15px;
             margin-bottom: 10px;
-            color: #02511F;
+            color: #E69C2F;
         }
 
         .product-grid {
@@ -178,12 +178,19 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             cursor: pointer;
             text-align: center;
             min-height: 80px;
-            color: #183b28;
+            color: #4A4033;
         }
 
         .product-button:hover {
-            border-color: #087A3D;
-            background: #f1f8f3;
+            border-color: #E69C2F;
+            background: #FFF3DF;
+        }
+
+        /* Produto selecionado — apenas visual */
+        .product-button.selected {
+            border-color: #E69C2F;
+            background: #FFF3DF;
+            box-shadow: 0 0 0 2px rgba(230, 156, 47, 0.14);
         }
 
         .product-name {
@@ -194,7 +201,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .product-price {
-            color: #087A3D;
+            color: #E69C2F;
             font-size: 13px;
             font-weight: 700;
         }
@@ -270,7 +277,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         .purchase-total strong {
             font-size: 28px;
-            color: #02511F;
+            color: #E69C2F;
         }
 
         .status-options {
@@ -297,9 +304,9 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .status-option input:checked + label {
-            border-color: #087A3D;
-            background: #e9f6ed;
-            color: #02511F;
+            border-color: #E69C2F;
+            background: #FFF3DF;
+            color: #E69C2F;
         }
 
         .save-button {
@@ -316,6 +323,99 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         .save-button:hover {
             background: #3eb532;
+        }
+
+        /* =====================================================
+           VALOR MANUAL
+        ====================================================== */
+
+        .manual-purchase {
+            display: grid;
+            gap: 12px;
+        }
+
+        .manual-purchase-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #4A4033;
+        }
+
+        .manual-purchase-row {
+            display: flex;
+            gap: 10px;
+            align-items: stretch;
+        }
+
+        .manual-prefix {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 52px;
+            padding: 0 12px;
+            border-radius: 11px;
+            background: #FFF3DF;
+            color: #E69C2F;
+            font-size: 16px;
+            font-weight: 800;
+        }
+
+        #manualAmount {
+            flex: 1;
+            min-width: 0;
+            height: 50px;
+            padding: 0 15px;
+            border: 2px solid #e1e7e3;
+            border-radius: 11px;
+            outline: none;
+            font-size: 18px;
+            font-weight: 700;
+            color: #4A4033;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        #manualAmount:focus {
+            border-color: #E69C2F;
+            box-shadow: 0 0 0 3px rgba(230, 156, 47, 0.12);
+        }
+
+        .manual-button {
+            width: 100%;
+            min-height: 48px;
+            border: 0;
+            border-radius: 11px;
+            background: #E69C2F;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .manual-button:hover {
+            background: #B97816;
+        }
+
+        .manual-button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .manual-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 4px 0;
+            color: #8a918d;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .manual-divider::before,
+        .manual-divider::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: #e1e7e3;
         }
 
         @media (max-width: 700px) {
@@ -352,6 +452,14 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             .cart-item {
                 gap: 8px;
+            }
+
+            .manual-purchase-row {
+                gap: 8px;
+            }
+
+            .manual-prefix {
+                min-width: 46px;
             }
 
             .item-total {
@@ -391,6 +499,27 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
 
     </div>
+
+
+    <nav class="admin-nav">
+
+        <a href="index.php">
+            🏠 Dashboard
+        </a>
+
+        <a href="purchase.php" class="active">
+            🛒 Nova compra
+        </a>
+
+        <a href="people.php">
+            👥 Pessoas
+        </a>
+
+        <a href="products.php">
+            📦 Produtos
+        </a>
+
+    </nav>
 
 
     <div class="admin-user">
@@ -588,6 +717,54 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 
     <!-- =====================================================
+         VALOR MANUAL
+    ====================================================== -->
+
+    <section class="purchase-card">
+
+        <h2>
+            💰 Valor manual
+        </h2>
+
+        <div class="manual-purchase">
+
+            <label
+                for="manualAmount"
+                class="manual-purchase-label"
+            >
+                Registre um valor sem selecionar produtos.
+            </label>
+
+            <div class="manual-purchase-row">
+
+                <span class="manual-prefix">
+                    R$
+                </span>
+
+                <input
+                    type="text"
+                    id="manualAmount"
+                    inputmode="decimal"
+                    autocomplete="off"
+                    placeholder="0,00"
+                >
+
+            </div>
+
+            <button
+                type="button"
+                id="manualPurchase"
+                class="manual-button"
+            >
+                Registrar valor manual
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
          CARRINHO
     ====================================================== -->
 
@@ -723,6 +900,12 @@ const cartTotal =
 
 const saveButton =
     document.getElementById('savePurchase');
+
+const manualAmount =
+    document.getElementById('manualAmount');
+
+const manualPurchase =
+    document.getElementById('manualPurchase');
 
 
 let cart = [];
@@ -903,6 +1086,13 @@ function renderCart() {
         cartTotal.textContent =
             'R$ 0,00';
 
+
+        document
+            .querySelectorAll('.product-button')
+            .forEach(button => {
+                button.classList.remove('selected');
+            });
+
         return;
 
     }
@@ -988,6 +1178,27 @@ function renderCart() {
 
     cartTotal.textContent =
         formatMoney(total);
+
+
+    // Mantém o produto visualmente selecionado enquanto ele estiver no carrinho.
+    document
+        .querySelectorAll('.product-button')
+        .forEach(button => {
+
+            const productId =
+                Number(button.dataset.id);
+
+            const selected =
+                cart.some(
+                    item => item.id === productId
+                );
+
+            button.classList.toggle(
+                'selected',
+                selected
+            );
+
+        });
 
 }
 
@@ -1156,6 +1367,190 @@ function escapeHTML(value) {
 |
 */
 
+
+/*
+|--------------------------------------------------------------------------
+| VALOR MANUAL
+|--------------------------------------------------------------------------
+*/
+
+manualPurchase.addEventListener(
+    'click',
+    async () => {
+
+        const teamId =
+            teamSelect.value;
+
+        const personId =
+            personSelect.value;
+
+        const rawValue =
+            manualAmount.value.trim();
+
+
+        if (!teamId) {
+
+            alert(
+                'Selecione uma equipe.'
+            );
+
+            return;
+        }
+
+
+        if (!personId) {
+
+            alert(
+                'Selecione uma pessoa.'
+            );
+
+            return;
+        }
+
+
+        if (!rawValue) {
+
+            alert(
+                'Informe um valor.'
+            );
+
+            manualAmount.focus();
+
+            return;
+        }
+
+
+        const normalizedValue =
+            rawValue
+                .replace(/\s/g, '')
+                .replace(/\./g, '')
+                .replace(',', '.');
+
+
+        const value =
+            Number(normalizedValue);
+
+
+        if (
+            !Number.isFinite(value) ||
+            value <= 0
+        ) {
+
+            alert(
+                'Informe um valor válido.'
+            );
+
+            manualAmount.focus();
+
+            return;
+        }
+
+
+        manualPurchase.disabled =
+            true;
+
+        manualPurchase.textContent =
+            'Registrando...';
+
+
+        try {
+
+            const response =
+                await fetch(
+                    '../api/purchases.php',
+                    {
+                        method: 'POST',
+
+                        headers: {
+                            'Content-Type':
+                                'application/json'
+                        },
+
+                        body:
+                            JSON.stringify({
+
+                                person_id:
+                                    Number(
+                                        personId
+                                    ),
+
+                                status:
+                                    'pending',
+
+                                items: [],
+
+                                manual_amount:
+                                    value,
+
+                                csrf_token:
+                                    csrfToken
+
+                            })
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (
+                !response.ok ||
+                !data.success
+            ) {
+
+                throw new Error(
+                    data.message ||
+                    'Não foi possível registrar o valor.'
+                );
+
+            }
+
+
+            alert(
+                'Valor registrado com sucesso! ✅\n\n' +
+                'Total: ' +
+                formatMoney(data.total)
+            );
+
+
+            history.scrollRestoration =
+                'manual';
+
+            window.scrollTo(
+                0,
+                0
+            );
+
+            window.location.reload();
+
+            return;
+
+
+        } catch (error) {
+
+            console.error(
+                error
+            );
+
+            alert(
+                error.message
+            );
+
+        } finally {
+
+            manualPurchase.disabled =
+                false;
+
+            manualPurchase.textContent =
+                'Registrar valor manual';
+
+        }
+
+    }
+);
+
+
 saveButton.addEventListener(
     'click',
     async () => {
@@ -1316,29 +1711,19 @@ saveButton.addEventListener(
 
             /*
             |--------------------------------------------------------------------------
-            | LIMPAR
+            | RECARREGAR
+            |--------------------------------------------------------------------------
+            | Depois do alerta, atualiza a página e volta para o topo.
             |--------------------------------------------------------------------------
             */
 
-            cart = [];
+            history.scrollRestoration = 'manual';
 
-            renderCart();
+            window.scrollTo(0, 0);
 
+            window.location.reload();
 
-            teamSelect.value = '';
-
-            personSelect.innerHTML = `
-                <option value="">
-                    Primeiro selecione a equipe
-                </option>
-            `;
-
-            personSelect.disabled = true;
-
-
-            document.getElementById(
-                'statusPending'
-            ).checked = true;
+            return;
 
 
         } catch (error) {

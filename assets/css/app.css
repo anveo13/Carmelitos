@@ -5,11 +5,11 @@
 }
 
 :root {
-    --green-dark: #02511F;
-    --green: #087A3D;
-    --green-light: #E7F5EA;
+    --primary-dark: #E69C2F;
+    --primary: #E69C2F;
+    --primary-light: #FFF3DF;
     --green-button: #49C83B;
-    --text: #124B2D;
+    --text: #4A4033;
     --border: #D9DEDB;
     --white: #FFFFFF;
     --background: #F7F8F7;
@@ -33,7 +33,7 @@ body {
 ======================================== */
 
 .hero {
-    background: #02511F;
+    background: #E69C2F;
     color: white;
     text-align: center;
     padding: 25px 20px 45px;
@@ -108,7 +108,7 @@ body {
     width: 42px;
     height: 42px;
     border-radius: 13px;
-    background: var(--green-light);
+    background: var(--primary-light);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -282,7 +282,7 @@ select:focus {
 
     border-radius: 50%;
 
-    background: var(--green-dark);
+    background: var(--primary-dark);
 
     display: block;
 }
@@ -327,7 +327,7 @@ select:focus {
 .product-button:hover {
     transform: translateY(-3px);
 
-    border-color: #8bc69d;
+    border-color: #E69C2F;
 
     box-shadow:
         0 7px 18px
@@ -369,8 +369,8 @@ select:focus {
     background:
         linear-gradient(
             135deg,
-            #005628,
-            #08753b
+            #D88C21,
+            #E69C2F
         );
 
     color: white;
@@ -505,7 +505,7 @@ select:focus {
 #cart-total {
     font-size: 42px;
 
-    color: #8ce47b;
+    color: #FFF3DF;
 
     margin: 8px 0 22px;
 }
@@ -842,7 +842,7 @@ select:focus {
 
     margin: 15px 0 22px;
 
-    color: #02511F;
+    color: #E69C2F;
 
     font-size: 22px;
 
@@ -859,7 +859,7 @@ select:focus {
 
     border-radius: 10px;
 
-    background: #02511F;
+    background: #E69C2F;
 
     color: #fff;
 

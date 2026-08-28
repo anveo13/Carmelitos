@@ -3,17 +3,19 @@
    ========================================= */
 
 :root {
-    --green-dark: #02511F;
-    --green: #087A3D;
-    --green-light: #E8F5EC;
+    --primary-dark: #B97816;
+    --primary: #E69C2F;
+    --primary-light: #FFF3DF;
+
+    /* Verde reservado para confirmação/sucesso */
     --green-button: #49C83B;
 
     --gold: #D7B45A;
 
-    --text: #183B28;
-    --text-light: #6B7C72;
+    --text: #4A4033;
+    --text-light: #6B6A66;
 
-    --background: #F5F7F5;
+    --background: #F7F7F7;
     --white: #FFFFFF;
     --border: #E1E7E3;
 
@@ -56,7 +58,7 @@ body {
 .admin-header {
     height: 76px;
 
-    background: var(--green-dark);
+    background: var(--primary);
     color: white;
 
     display: flex;
@@ -345,12 +347,12 @@ body {
 }
 
 .status-tab.active {
-    background: var(--green-dark);
+    background: var(--primary);
 
     color: white;
 
     box-shadow:
-        0 3px 8px rgba(2, 81, 31, 0.18);
+        0 3px 8px rgba(230, 156, 47, 0.18);
 }
 
 
@@ -381,7 +383,7 @@ body {
 
     margin: 0 auto 15px;
 
-    background: var(--green-light);
+    background: var(--primary-light);
 
     border-radius: 50%;
 
