@@ -473,7 +473,149 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         }
 
-    </style>
+    
+        /* =====================================================
+           CONFIRMAÇÃO DE PAGAMENTO
+        ====================================================== */
+
+        .confirmation-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(3px);
+        }
+
+        .confirmation-modal.show {
+            display: flex;
+        }
+
+        .confirmation-box {
+            width: min(430px, 100%);
+            background: #fff;
+            border-radius: 18px;
+            padding: 25px;
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.18);
+            animation: confirmationIn 0.18s ease-out;
+        }
+
+        @keyframes confirmationIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(0.98);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .confirmation-icon {
+            width: 52px;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            border-radius: 14px;
+            background: #E7F6EA;
+            font-size: 25px;
+        }
+
+        .confirmation-box h3 {
+            margin: 0 0 8px;
+            font-size: 21px;
+        }
+
+        .confirmation-box p {
+            margin: 0 0 18px;
+            color: #75827a;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        .confirmation-details {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            background: #f7f9f7;
+        }
+
+        .confirmation-person {
+            font-weight: 800;
+            color: #4A4033;
+            margin-bottom: 4px;
+        }
+
+        .confirmation-team {
+            color: #75827a;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .confirmation-total {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 10px;
+            border-top: 1px solid #e1e7e3;
+        }
+
+        .confirmation-total span {
+            font-size: 12px;
+            font-weight: 700;
+            color: #75827a;
+        }
+
+        .confirmation-total strong {
+            font-size: 24px;
+            color: #02511F;
+        }
+
+        .confirmation-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .confirmation-cancel,
+        .confirmation-confirm {
+            min-height: 48px;
+            border: 0;
+            border-radius: 11px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .confirmation-cancel {
+            background: #eef2ef;
+            color: #4A4033;
+        }
+
+        .confirmation-confirm {
+            background: #49C83B;
+            color: #fff;
+        }
+
+        .confirmation-confirm:hover {
+            background: #3eb532;
+        }
+
+        @media (max-width: 700px) {
+
+            .confirmation-box {
+                padding: 20px;
+            }
+
+        }
+
+</style>
 
 </head>
 
@@ -877,6 +1019,89 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </button>
 
 
+
+    <!-- =====================================================
+         CONFIRMAÇÃO DE PAGAMENTO
+    ====================================================== -->
+
+    <div
+        id="confirmationModal"
+        class="confirmation-modal"
+        aria-hidden="true"
+    >
+
+        <div
+            class="confirmation-box"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirmationTitle"
+        >
+
+            <div class="confirmation-icon">
+                💳
+            </div>
+
+            <h3 id="confirmationTitle">
+                Confirmar pagamento?
+            </h3>
+
+            <p>
+                Confira os dados antes de registrar esta compra.
+            </p>
+
+            <div class="confirmation-details">
+
+                <div
+                    id="confirmationPerson"
+                    class="confirmation-person"
+                ></div>
+
+                <div
+                    id="confirmationTeam"
+                    class="confirmation-team"
+                ></div>
+
+                <div class="confirmation-total">
+
+                    <span>
+                        TOTAL
+                    </span>
+
+                    <strong
+                        id="confirmationTotal"
+                    >
+                        R$ 0,00
+                    </strong>
+
+                </div>
+
+            </div>
+
+            <div class="confirmation-actions">
+
+                <button
+                    type="button"
+                    id="confirmationCancel"
+                    class="confirmation-cancel"
+                >
+                    Cancelar
+                </button>
+
+                <button
+                    type="button"
+                    id="confirmationConfirm"
+                    class="confirmation-confirm"
+                >
+                    Confirmar
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
 </main>
 
 
@@ -908,7 +1133,41 @@ const manualPurchase =
     document.getElementById('manualPurchase');
 
 
+const confirmationModal =
+    document.getElementById(
+        'confirmationModal'
+    );
+
+const confirmationPerson =
+    document.getElementById(
+        'confirmationPerson'
+    );
+
+const confirmationTeam =
+    document.getElementById(
+        'confirmationTeam'
+    );
+
+const confirmationTotal =
+    document.getElementById(
+        'confirmationTotal'
+    );
+
+const confirmationCancel =
+    document.getElementById(
+        'confirmationCancel'
+    );
+
+const confirmationConfirm =
+    document.getElementById(
+        'confirmationConfirm'
+    );
+
+
 let cart = [];
+
+
+let pendingPurchase = null;
 
 const csrfToken =
     <?= json_encode(csrf_token()) ?>;
@@ -1551,6 +1810,150 @@ manualPurchase.addEventListener(
 );
 
 
+
+function openConfirmation(
+    personName,
+    teamName,
+    total,
+    callback
+) {
+
+    confirmationPerson.textContent =
+        personName;
+
+    confirmationTeam.textContent =
+        teamName;
+
+    confirmationTotal.textContent =
+        formatMoney(total);
+
+
+    pendingPurchase =
+        callback;
+
+
+    confirmationModal.classList.add(
+        'show'
+    );
+
+    confirmationModal.setAttribute(
+        'aria-hidden',
+        'false'
+    );
+
+}
+
+
+function closeConfirmation() {
+
+    confirmationModal.classList.remove(
+        'show'
+    );
+
+    confirmationModal.setAttribute(
+        'aria-hidden',
+        'true'
+    );
+
+
+    pendingPurchase = null;
+
+}
+
+
+confirmationCancel.addEventListener(
+    'click',
+    closeConfirmation
+);
+
+
+confirmationModal.addEventListener(
+    'click',
+    event => {
+
+        if (
+            event.target ===
+            confirmationModal
+        ) {
+
+            closeConfirmation();
+
+        }
+
+    }
+);
+
+
+document.addEventListener(
+    'keydown',
+    event => {
+
+        if (
+            event.key === 'Escape' &&
+            confirmationModal.classList.contains(
+                'show'
+            )
+        ) {
+
+            closeConfirmation();
+
+        }
+
+    }
+);
+
+
+confirmationConfirm.addEventListener(
+    'click',
+    async () => {
+
+        if (
+            typeof pendingPurchase !==
+            'function'
+        ) {
+
+            closeConfirmation();
+
+            return;
+
+        }
+
+
+        const callback =
+            pendingPurchase;
+
+
+        confirmationConfirm.disabled =
+            true;
+
+        confirmationCancel.disabled =
+            true;
+
+        confirmationConfirm.textContent =
+            'Registrando...';
+
+
+        try {
+
+            await callback();
+
+        } finally {
+
+            confirmationConfirm.disabled =
+                false;
+
+            confirmationCancel.disabled =
+                false;
+
+            confirmationConfirm.textContent =
+                'Confirmar';
+
+        }
+
+    }
+);
+
+
 saveButton.addEventListener(
     'click',
     async () => {
@@ -1609,7 +2012,7 @@ saveButton.addEventListener(
 
         /*
         |--------------------------------------------------------------------------
-        | PREPARAR ITENS
+        | PREPARAR DADOS
         |--------------------------------------------------------------------------
         */
 
@@ -1625,125 +2028,175 @@ saveButton.addEventListener(
             }));
 
 
+        const personName =
+            personSelect
+                .options[
+                    personSelect.selectedIndex
+                ]
+                .textContent
+                .trim();
+
+
+        const teamName =
+            teamSelect
+                .options[
+                    teamSelect.selectedIndex
+                ]
+                .textContent
+                .trim();
+
+
+        const total =
+            cart.reduce(
+                (
+                    sum,
+                    item
+                ) =>
+                    sum +
+                    (
+                        item.price *
+                        item.quantity
+                    ),
+                0
+            );
+
+
         /*
         |--------------------------------------------------------------------------
-        | DESABILITAR BOTÃO
+        | CONFIRMAÇÃO
         |--------------------------------------------------------------------------
         */
 
-        saveButton.disabled = true;
+        openConfirmation(
+            personName,
+            teamName,
+            total,
+            async () => {
 
-        saveButton.textContent =
-            'Registrando...';
+                saveButton.disabled =
+                    true;
+
+                saveButton.textContent =
+                    'Registrando...';
 
 
-        try {
+                try {
 
-            /*
-            |--------------------------------------------------------------------------
-            | ENVIAR PARA PHP
-            |--------------------------------------------------------------------------
-            */
+                    const response =
+                        await fetch(
+                            '../api/purchases.php',
+                            {
 
-            const response =
-                await fetch(
-                    '../api/purchases.php',
-                    {
+                                method: 'POST',
 
-                        method: 'POST',
+                                headers: {
+                                    'Content-Type':
+                                        'application/json'
+                                },
 
-                        headers: {
-                            'Content-Type':
-                                'application/json'
-                        },
+                                body:
+                                    JSON.stringify({
 
-                      body:
-    JSON.stringify({
+                                        csrf_token:
+                                            csrfToken,
 
-        csrf_token:
-            csrfToken,
+                                        person_id:
+                                            Number(
+                                                personId
+                                            ),
 
-        person_id:
-            Number(personId),
+                                        status,
 
-        status,
+                                        items
 
-        items
+                                    })
 
-    })
+                            }
+                        );
+
+
+                    const data =
+                        await response.json();
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | ERRO
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (
+                        !response.ok ||
+                        !data.success
+                    ) {
+
+                        throw new Error(
+                            data.message ||
+                            'Não foi possível registrar a compra.'
+                        );
 
                     }
-                );
 
 
-            const data =
-                await response.json();
+                    /*
+                    |--------------------------------------------------------------------------
+                    | SUCESSO
+                    |--------------------------------------------------------------------------
+                    */
+
+                    closeConfirmation();
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | ERRO
-            |--------------------------------------------------------------------------
-            */
+                    alert(
+                        'Compra registrada com sucesso! ✅\n\n' +
+                        'Total: ' +
+                        formatMoney(data.total)
+                    );
 
-            if (!response.ok || !data.success) {
 
-                throw new Error(
-                    data.message ||
-                    'Não foi possível registrar a compra.'
-                );
+                    /*
+                    |--------------------------------------------------------------------------
+                    | RECARREGAR
+                    |--------------------------------------------------------------------------
+                    */
+
+                    history.scrollRestoration =
+                        'manual';
+
+                    window.scrollTo(
+                        0,
+                        0
+                    );
+
+                    window.location.reload();
+
+                    return;
+
+
+                } catch (error) {
+
+                    console.error(
+                        error
+                    );
+
+
+                    alert(
+                        'Erro ao registrar a compra:\n\n' +
+                        error.message
+                    );
+
+                } finally {
+
+                    saveButton.disabled =
+                        false;
+
+                    saveButton.textContent =
+                        'Registrar compra';
+
+                }
 
             }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | SUCESSO
-            |--------------------------------------------------------------------------
-            */
-
-            alert(
-                'Compra registrada com sucesso! ✅\n\n' +
-                'Total: ' +
-                formatMoney(data.total)
-            );
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | RECARREGAR
-            |--------------------------------------------------------------------------
-            | Depois do alerta, atualiza a página e volta para o topo.
-            |--------------------------------------------------------------------------
-            */
-
-            history.scrollRestoration = 'manual';
-
-            window.scrollTo(0, 0);
-
-            window.location.reload();
-
-            return;
-
-
-        } catch (error) {
-
-            console.error(error);
-
-            alert(
-                'Erro ao registrar a compra:\n\n' +
-                error.message
-            );
-
-
-        } finally {
-
-            saveButton.disabled = false;
-
-            saveButton.textContent =
-                'Registrar compra';
-
-        }
+        );
 
     }
 );

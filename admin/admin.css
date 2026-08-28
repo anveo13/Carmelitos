@@ -3,9 +3,9 @@
    ========================================= */
 
 :root {
-    --primary-dark: #B97816;
-    --primary: #E69C2F;
-    --primary-light: #FFF3DF;
+    --primary-dark: #013A16;
+    --primary: #02511F;
+    --primary-light: #E7F6EA;
 
     /* Verde reservado para confirmação/sucesso */
     --green-button: #49C83B;
@@ -352,7 +352,7 @@ body {
     color: white;
 
     box-shadow:
-        0 3px 8px rgba(230, 156, 47, 0.18);
+        0 3px 8px rgba(2, 81, 31, 0.18);
 }
 
 
