@@ -192,3 +192,63 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     </div>
 
 </header>
+
+
+<!-- =====================================================
+     CENTRALIZAR ITEM ATIVO NO MENU MOBILE
+====================================================== -->
+
+<script>
+
+document.addEventListener(
+    'DOMContentLoaded',
+    () => {
+
+        const nav =
+            document.querySelector(
+                '.admin-nav'
+            );
+
+
+        const activeItem =
+            nav?.querySelector(
+                'a.active'
+            );
+
+
+        if (
+            !nav ||
+            !activeItem
+        ) {
+
+            return;
+
+        }
+
+
+        /*
+        |--------------------------------------------------
+        | Somente no celular
+        |--------------------------------------------------
+        */
+
+        if (
+            window.innerWidth <= 768
+        ) {
+
+            activeItem.scrollIntoView({
+
+                behavior: 'auto',
+
+                block: 'nearest',
+
+                inline: 'center'
+
+            });
+
+        }
+
+    }
+);
+
+</script>

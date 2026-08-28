@@ -212,6 +212,101 @@ ksort($teams);
         }
 
 
+        .record-card {
+            cursor: pointer;
+        }
+
+
+        .record-card.is-open {
+            box-shadow:
+                0 8px 24px
+                rgba(0, 0, 0, 0.09);
+        }
+
+
+        .record-value {
+            font-size: 20px;
+        }
+
+
+        .record-count {
+            margin-top: 5px;
+            color: #7a857f;
+            font-size: 12px;
+        }
+
+
+        .record-details {
+            display: none;
+            width: 100%;
+            margin-top: 15px;
+            padding-top: 14px;
+            border-top: 1px solid #edf0ee;
+        }
+
+
+        .record-card.is-open .record-details {
+            display: block;
+        }
+
+
+        .purchase-detail {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f2f1;
+        }
+
+
+        .purchase-detail:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+
+        .purchase-detail-info {
+            min-width: 0;
+        }
+
+
+        .purchase-detail-number {
+            font-weight: 800;
+            font-size: 13px;
+            color: #4a4033;
+        }
+
+
+        .purchase-detail-date {
+            margin-top: 3px;
+            color: #9aa49e;
+            font-size: 11px;
+        }
+
+
+        .purchase-detail-value {
+            flex-shrink: 0;
+            font-weight: 800;
+            color: #e69c2f;
+            font-size: 13px;
+        }
+
+
+        .purchase-detail-link {
+            flex-shrink: 0;
+            color: #e69c2f;
+            font-size: 11px;
+            font-weight: 800;
+            text-decoration: none;
+        }
+
+
+        .purchase-detail-link:hover {
+            color: #b97816;
+        }
+
+
         .record-info {
 
             min-width: 0;
@@ -972,7 +1067,6 @@ function renderRecords() {
         teamFilter.value;
 
 
-
     /*
     |--------------------------------------------------------------------------
     | FILTROS
@@ -985,8 +1079,7 @@ function renderRecords() {
             const name =
                 String(
                     item.name || ''
-                )
-                    .toLowerCase();
+                ).toLowerCase();
 
 
             const itemTeam =
@@ -997,9 +1090,7 @@ function renderRecords() {
 
             const matchesName =
                 !search ||
-                name.includes(
-                    search
-                );
+                name.includes(search);
 
 
             const matchesTeam =
@@ -1016,6 +1107,94 @@ function renderRecords() {
     );
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | AGRUPAR POR PESSOA
+    |--------------------------------------------------------------------------
+    |
+    | Em vez de mostrar cada compra separadamente, agrupamos todas as
+    | compras da mesma pessoa em um único card.
+    |
+    */
+
+    const grouped = {};
+
+
+    list.forEach(
+        item => {
+
+            /*
+            | Pessoa + equipe formam a chave do agrupamento.
+            */
+
+            const key =
+                `${item.person_id ?? item.id}::${item.team_name || ''}`;
+
+
+            if (!grouped[key]) {
+
+                grouped[key] = {
+
+                    id:
+                        item.person_id ?? item.id,
+
+                    name:
+                        item.name || '',
+
+                    team_name:
+                        item.team_name || 'Sem equipe',
+
+                    total: 0,
+
+                    count: 0,
+
+                    purchases: []
+
+                };
+
+            }
+
+
+            const value =
+                Number(item.total || 0);
+
+
+            /*
+            | "Não utilizado" não possui compras.
+            */
+
+            if (currentStatus !== 'unused') {
+
+                grouped[key].total += value;
+
+                grouped[key].count++;
+
+                grouped[key].purchases.push(item);
+
+            }
+
+        }
+    );
+
+
+    const groupedList =
+        Object.values(grouped);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | ORDENAÇÃO
+    |--------------------------------------------------------------------------
+    |
+    | Pessoas com maior valor primeiro.
+    |
+    */
+
+    groupedList.sort(
+        (a, b) =>
+            b.total - a.total
+    );
+
 
     /*
     |--------------------------------------------------------------------------
@@ -1025,12 +1204,11 @@ function renderRecords() {
 
     recordsCount.textContent =
 
-        `${list.length} ${
-            list.length === 1
-                ? 'registro'
-                : 'registros'
+        `${groupedList.length} ${
+            groupedList.length === 1
+                ? 'pessoa'
+                : 'pessoas'
         }`;
-
 
 
     /*
@@ -1039,7 +1217,7 @@ function renderRecords() {
     |--------------------------------------------------------------------------
     */
 
-    if (list.length === 0) {
+    if (groupedList.length === 0) {
 
         content.innerHTML = `
 
@@ -1070,83 +1248,123 @@ function renderRecords() {
     }
 
 
-
     /*
     |--------------------------------------------------------------------------
-    | LISTA
+    | CARDS
     |--------------------------------------------------------------------------
     */
 
     const listHTML =
 
-        list.map(
-            item => {
+        groupedList.map(
+            person => {
+
+                const purchasesHTML =
+
+                    person.purchases
+                        .sort(
+                            (a, b) =>
+                                new Date(
+                                    b.created_at || b.paid_at || 0
+                                ) -
+                                new Date(
+                                    a.created_at || a.paid_at || 0
+                                )
+                        )
+                        .map(
+                            purchase => {
+
+                                const purchaseDate =
+                                    purchase.paid_at ||
+                                    purchase.created_at ||
+                                    '';
 
 
-                let value = null;
+                                return `
 
-                let date = '';
+                                    <div class="purchase-detail">
 
+                                        <div class="purchase-detail-info">
 
+                                            <div class="purchase-detail-number">
 
-                /*
-                |--------------------------------------------------------------------------
-                | PAGO
-                |--------------------------------------------------------------------------
-                */
+                                                Compra #${Number(
+                                                    purchase.id || 0
+                                                )}
 
-                if (
-                    currentStatus === 'paid'
-                ) {
-
-                    value =
-                        item.total;
-
-                    date =
-                        item.paid_at;
-
-                }
+                                            </div>
 
 
+                                            ${
+                                                purchaseDate
+                                                    ? `
+                                                        <div class="purchase-detail-date">
 
-                /*
-                |--------------------------------------------------------------------------
-                | DEVENDO
-                |--------------------------------------------------------------------------
-                */
+                                                            📅
+                                                            ${formatDate(
+                                                                purchaseDate
+                                                            )}
 
-                else if (
-                    currentStatus === 'debt'
-                ) {
+                                                        </div>
+                                                      `
+                                                    : ''
+                                            }
 
-                    value =
-                        item.total;
-
-                }
+                                        </div>
 
 
+                                        <span class="purchase-detail-value">
 
-                /*
-                |--------------------------------------------------------------------------
-                | CARD
-                |--------------------------------------------------------------------------
-                */
+                                            ${formatMoney(
+                                                purchase.total
+                                            )}
+
+                                        </span>
+
+
+                                        <a
+                                            href="purchase-view.php?id=${Number(
+                                                purchase.id || 0
+                                            )}"
+                                            class="purchase-detail-link"
+                                            onclick="event.stopPropagation();"
+                                        >
+
+                                            Ver
+
+                                        </a>
+
+                                    </div>
+
+                                `;
+
+                            }
+                        )
+                        .join('');
+
+
+                const isUnused =
+                    currentStatus === 'unused';
+
 
                 return `
 
-                    <a
-                        href="${getRecordLink(item)}"
+                    <div
                         class="record-card"
+                        data-person-id="${Number(
+                            person.id || 0
+                        )}"
                     >
 
-
-                        <div class="record-info">
-
+                        <div
+                            class="record-info"
+                            style="width: 100%;"
+                        >
 
                             <h3 class="record-name">
 
                                 ${escapeHTML(
-                                    item.name
+                                    person.name
                                 )}
 
                             </h3>
@@ -1157,53 +1375,53 @@ function renderRecords() {
                                 👥
 
                                 ${escapeHTML(
-                                    item.team_name ||
-                                    'Sem equipe'
+                                    person.team_name
                                 )}
 
                             </div>
 
 
                             ${
-                                date
+                                isUnused
                                     ? `
-                                        <div
-                                            class="record-date"
-                                        >
+                                        <div class="record-count">
 
-                                            📅
-
-                                            ${formatDate(
-                                                date
-                                            )}
+                                            Ainda não realizou nenhuma compra
 
                                         </div>
                                       `
-                                    : ''
-                            }
+                                    : `
+                                        <div class="record-count">
 
+                                            ${person.count}
+                                            ${
+                                                person.count === 1
+                                                    ? 'compra'
+                                                    : 'compras'
+                                            }
+
+                                        </div>
+                                      `
+                            }
 
                         </div>
 
 
-
-                        <div class="record-right">
-
+                        <div
+                            class="record-right"
+                            style="width: 100%;"
+                        >
 
                             ${
-                                value !== null
+                                !isUnused
                                     ? `
-
-                                        <span
-                                            class="record-value"
-                                        >
+                                        <span class="record-value">
 
                                             ${formatMoney(
-                                                value
+                                                person.total
                                             )}
 
                                         </span>
-
                                       `
                                     : ''
                             }
@@ -1222,18 +1440,28 @@ function renderRecords() {
 
                             </span>
 
-
                         </div>
 
 
-                    </a>
+                        ${
+                            !isUnused
+                                ? `
+                                    <div class="record-details">
+
+                                        ${purchasesHTML}
+
+                                    </div>
+                                  `
+                                : ''
+                        }
+
+                    </div>
 
                 `;
 
             }
         )
         .join('');
-
 
 
     content.innerHTML = `
@@ -1245,6 +1473,43 @@ function renderRecords() {
         </div>
 
     `;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | ABRIR / FECHAR DETALHES
+    |--------------------------------------------------------------------------
+    */
+
+    content
+        .querySelectorAll('.record-card')
+        .forEach(
+            card => {
+
+                card.addEventListener(
+                    'click',
+                    event => {
+
+                        if (
+                            event.target.closest(
+                                '.purchase-detail-link'
+                            )
+                        ) {
+
+                            return;
+
+                        }
+
+
+                        card.classList.toggle(
+                            'is-open'
+                        );
+
+                    }
+                );
+
+            }
+        );
 
 }
 
