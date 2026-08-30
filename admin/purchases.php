@@ -12,6 +12,78 @@ require_once __DIR__ . '/../config/database.php';
 
 /*
 |--------------------------------------------------------------------------
+| MARCAR TODAS AS COMPRAS PENDENTES DA PESSOA COMO PAGAS
+|--------------------------------------------------------------------------
+*/
+
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST' &&
+    ($_POST['action'] ?? '') === 'mark_person_paid'
+) {
+
+    $personId = (int) (
+        $_POST['person_id'] ?? 0
+    );
+
+    if ($personId > 0) {
+
+        $payStmt = $pdo->prepare("
+            UPDATE purchases
+            SET
+                status = 'paid',
+                paid_at = NOW()
+            WHERE
+                person_id = ?
+                AND status = 'pending'
+        ");
+
+        $payStmt->execute([
+            $personId
+        ]);
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | RETORNAR PARA A MESMA TELA E MANTER OS FILTROS
+    |--------------------------------------------------------------------------
+    */
+
+    $returnUrl =
+        $_POST['return_url']
+        ?? 'purchases.php';
+
+
+    $returnPath =
+        parse_url(
+            $returnUrl,
+            PHP_URL_PATH
+        );
+
+
+    if (
+        !$returnPath ||
+        basename($returnPath) !== 'purchases.php'
+    ) {
+
+        $returnUrl =
+            'purchases.php';
+
+    }
+
+
+    header(
+        'Location: ' . $returnUrl
+    );
+
+    exit;
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
 | FILTRO
 |--------------------------------------------------------------------------
 */
@@ -52,6 +124,22 @@ $sql = "
         COUNT(DISTINCT p.id) AS purchase_count,
 
         SUM(p.total) AS total_value,
+
+        SUM(
+            CASE
+                WHEN p.status = 'pending'
+                THEN 1
+                ELSE 0
+            END
+        ) AS pending_count,
+
+        SUM(
+            CASE
+                WHEN p.status = 'pending'
+                THEN p.total
+                ELSE 0
+            END
+        ) AS pending_value,
 
         MAX(p.created_at) AS latest_purchase
 
@@ -861,6 +949,61 @@ $counts =
         }
 
 
+        .purchase-card-actions {
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: flex-end;
+
+            gap: 8px;
+        }
+
+
+        .mark-paid-form {
+
+            margin: 0;
+        }
+
+
+        .mark-person-paid {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            min-height: 38px;
+
+            padding:
+                0 13px;
+
+            border: 0;
+
+            border-radius: 9px;
+
+            background: #02511F;
+
+            color: #ffffff;
+
+            cursor: pointer;
+
+            font: inherit;
+
+            font-size: 12px;
+
+            font-weight: 800;
+        }
+
+
+        .mark-person-paid:hover {
+
+            background: #036b29;
+        }
+
+
         /* =====================================================
            EMPTY
         ===================================================== */
@@ -991,9 +1134,26 @@ $counts =
             }
 
 
+            .purchase-card-actions {
+
+                width: 100%;
+
+                flex-direction: column;
+            }
+
+
+            .mark-paid-form {
+
+                width: 100%;
+            }
+
+
+            .mark-person-paid,
             .view-purchase {
 
                 width: 100%;
+
+                box-sizing: border-box;
             }
 
         }
@@ -1435,11 +1595,63 @@ $counts =
                         </div>
 
 
-                        <span class="view-purchase">
+                        <div class="purchase-card-actions">
 
-                            Ver compras ↓
+                            <?php if (
+                                (int) (
+                                    $purchase['pending_count']
+                                    ?? 0
+                                ) > 0
+                            ): ?>
 
-                        </span>
+                                <form
+                                    method="post"
+                                    class="mark-paid-form"
+                                    onclick="event.stopPropagation();"
+                                >
+
+                                    <input
+                                        type="hidden"
+                                        name="action"
+                                        value="mark_person_paid"
+                                    >
+
+                                    <input
+                                        type="hidden"
+                                        name="person_id"
+                                        value="<?= $personId ?>"
+                                    >
+
+                                    <input
+                                        type="hidden"
+                                        name="return_url"
+                                        value="<?= htmlspecialchars(
+                                            $_SERVER['REQUEST_URI'],
+                                            ENT_QUOTES,
+                                            'UTF-8'
+                                        ) ?>"
+                                    >
+
+                                    <button
+                                        type="submit"
+                                        class="mark-person-paid"
+                                        onclick="event.stopPropagation(); return confirm('Marcar todas as compras pendentes desta pessoa como pagas?');"
+                                    >
+                                        💰 Marcar como pago
+                                    </button>
+
+                                </form>
+
+                            <?php endif; ?>
+
+
+                            <span class="view-purchase">
+
+                                Ver compras ↓
+
+                            </span>
+
+                        </div>
 
                     </div>
 
@@ -1573,7 +1785,7 @@ document
 
                 if (
                     event.target.closest(
-                        '.purchase-detail-link'
+                        '.purchase-detail-link, .mark-paid-form, .mark-person-paid'
                     )
                 ) {
 
