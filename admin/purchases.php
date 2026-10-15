@@ -8,6 +8,7 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/security.php';
 
 
 /*
@@ -1349,7 +1350,73 @@ $counts =
         .purchase-modal-total span { color: #68736d; font-size: 13px; }
         .purchase-modal-total strong { color: #02511F; font-size: 24px; }
 
-        .purchase-modal-actions {
+        
+.purchase-modal-items {
+            margin: 0 0 20px;
+            padding: 14px;
+            border: 1px solid #e7ece8;
+            border-radius: 12px;
+            background: #fbfcfb;
+        }
+        .purchase-modal-items h3 {
+            margin: 0 0 10px;
+            color: #183b28;
+            font-size: 14px;
+        }
+        .purchase-modal-items-list {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+        }
+        .purchase-modal-item {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            padding-bottom: 9px;
+            border-bottom: 1px solid #edf0ee;
+            font-size: 12px;
+        }
+        .purchase-modal-item:last-child {
+            padding-bottom: 0;
+            border-bottom: 0;
+        }
+        .purchase-modal-item-name {
+            color: #183b28;
+            font-weight: 700;
+        }
+        .purchase-modal-item-meta {
+            display: block;
+            margin-top: 3px;
+            color: #77837b;
+            font-size: 11px;
+        }
+        .purchase-modal-item-price {
+            color: #183b28;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        .purchase-modal-items-message {
+            margin: 0;
+            color: #77837b;
+            font-size: 12px;
+        }
+
+.purchase-modal-delete {
+    border: 0;
+    border-radius: 10px;
+    padding: 12px 14px;
+    background: #fff0f0;
+    color: #a52222;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.purchase-modal-delete:hover {
+    background: #ffe0e0;
+}
+
+.purchase-modal-actions {
             display: flex;
             gap: 10px;
         }
@@ -1949,6 +2016,12 @@ $counts =
             <div><small>Data da compra</small><strong id="modal-purchase-date"></strong></div>
             <div><small>Situação</small><strong id="modal-purchase-status"></strong></div>
         </div>
+        <section class="purchase-modal-items" aria-labelledby="modal-items-title">
+            <h3 id="modal-items-title">🛒 Itens comprados</h3>
+            <div class="purchase-modal-items-list" id="modal-purchase-items-list">
+                <p class="purchase-modal-items-message">Carregando itens...</p>
+            </div>
+        </section>
         <div class="purchase-modal-total">
             <span>Valor total</span>
             <strong>R$ <span id="modal-purchase-total"></span></strong>
@@ -1956,6 +2029,11 @@ $counts =
         <div class="purchase-modal-actions">
             <button type="button" class="purchase-modal-cancel" id="purchase-modal-cancel">Fechar</button>
             <a href="#" class="purchase-modal-full" id="purchase-modal-full">Ver compra completa →</a>
+            <form method="POST" id="purchase-modal-delete-form" action="">
+                <input type="hidden" name="action" value="delete_purchase">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
+                <button type="submit" class="purchase-modal-delete">🗑️ Excluir</button>
+            </form>
         </div>
     </section>
 </div>
@@ -2439,7 +2517,50 @@ filterPurchaseCards();
     const closeButton = document.getElementById('purchase-modal-close');
     const cancelButton = document.getElementById('purchase-modal-cancel');
     const fullLink = document.getElementById('purchase-modal-full');
+    const deleteForm = document.getElementById('purchase-modal-delete-form');
+    const itemsList = document.getElementById('modal-purchase-items-list');
     let previousFocus = null;
+
+    function formatItemMoney(value) {
+        return Number(value || 0).toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    async function loadPurchaseItems(purchaseId) {
+        itemsList.innerHTML = '<p class="purchase-modal-items-message">Carregando itens...</p>';
+        try {
+            const response = await fetch('purchase-items.php?id=' + encodeURIComponent(purchaseId), {
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Não foi possível carregar os itens.');
+            }
+            if (!Array.isArray(data.items) || data.items.length === 0) {
+                itemsList.innerHTML = '<p class="purchase-modal-items-message">Nenhum item encontrado nesta compra.</p>';
+                return;
+            }
+            itemsList.innerHTML = data.items.map(item => `
+                <div class="purchase-modal-item">
+                    <div>
+                        <span class="purchase-modal-item-name">${escapeModalHTML(item.product_name)}</span>
+                        <span class="purchase-modal-item-meta">${Number(item.quantity)} × R$ ${formatItemMoney(item.unit_price)}${item.category_name ? ' · ' + escapeModalHTML(item.category_name) : ''}</span>
+                    </div>
+                    <span class="purchase-modal-item-price">R$ ${formatItemMoney(item.subtotal)}</span>
+                </div>
+            `).join('');
+        } catch (error) {
+            itemsList.innerHTML = '<p class="purchase-modal-items-message">Erro ao carregar os itens. Use “Ver compra completa” para consultar os detalhes.</p>';
+        }
+    }
+
+    function escapeModalHTML(value) {
+        return String(value ?? '').replace(/[&<>"']/g, char => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+        })[char]);
+    }
 
     function closePurchaseModal() {
         backdrop.classList.remove('is-visible');
@@ -2461,12 +2582,23 @@ filterPurchaseCards();
             document.getElementById('modal-purchase-status').textContent = button.dataset.purchaseStatus || '—';
             document.getElementById('modal-purchase-total').textContent = button.dataset.purchaseTotal || '0,00';
             fullLink.href = 'purchase-view.php?id=' + encodeURIComponent(button.dataset.purchaseId || '');
+        deleteForm.action = 'purchase-view.php?id=' + encodeURIComponent(button.dataset.purchaseId || '');
+        loadPurchaseItems(button.dataset.purchaseId || '');
 
             backdrop.classList.add('is-visible');
             backdrop.setAttribute('aria-hidden', 'false');
             document.body.style.overflow = 'hidden';
             closeButton.focus();
         });
+    });
+
+    deleteForm.addEventListener('submit', event => {
+        const confirmed = confirm(
+            'Tem certeza que deseja excluir esta compra?\\n\\n' +
+            'A compra e todos os produtos associados serão removidos definitivamente. ' +
+            'Esta ação não pode ser desfeita.'
+        );
+        if (!confirmed) event.preventDefault();
     });
 
     closeButton.addEventListener('click', closePurchaseModal);
