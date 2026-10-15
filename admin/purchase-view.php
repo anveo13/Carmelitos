@@ -32,6 +32,54 @@ if (!$purchaseId) {
 
 }
 
+/*
+|--------------------------------------------------------------------------
+| EXCLUIR COMPRA
+|--------------------------------------------------------------------------
+*/
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_purchase') {
+    $submittedToken = $_POST['csrf_token'] ?? '';
+    $sessionToken = csrf_token();
+
+    if (!is_string($submittedToken) || !hash_equals($sessionToken, $submittedToken)) {
+        http_response_code(403);
+        exit('Token de segurança inválido. Atualize a página e tente novamente.');
+    }
+
+    try {
+        $pdo->beginTransaction();
+
+        // Exclui os itens antes da compra para respeitar possíveis chaves estrangeiras.
+        $deleteItems = $pdo->prepare(
+            'DELETE FROM purchase_items WHERE purchase_id = ?'
+        );
+        $deleteItems->execute([$purchaseId]);
+
+        $deletePurchase = $pdo->prepare(
+            'DELETE FROM purchases WHERE id = ?'
+        );
+        $deletePurchase->execute([$purchaseId]);
+
+        if ($deletePurchase->rowCount() !== 1) {
+            throw new RuntimeException('A compra não foi encontrada ou já foi excluída.');
+        }
+
+        $pdo->commit();
+
+        header('Location: purchases.php?deleted=1');
+        exit;
+    } catch (Throwable $error) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        error_log('Erro ao excluir compra #' . $purchaseId . ': ' . $error->getMessage());
+        http_response_code(500);
+        exit('Não foi possível excluir a compra. Nenhuma alteração foi mantida. Volte à lista e tente novamente.');
+    }
+}
+
 
 /*
 |--------------------------------------------------------------------------
@@ -205,15 +253,33 @@ $items =
         }
 
 
+        .heading-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
         .back-link {
-
             color: #02511F;
-
             text-decoration: none;
-
             font-weight: 800;
-
             white-space: nowrap;
+        }
+
+        .delete-purchase-button {
+            border: 0;
+            border-radius: 9px;
+            padding: 11px 14px;
+            background: #fff0f0;
+            color: #a52222;
+            font-size: 13px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .delete-purchase-button:hover {
+            background: #ffe0e0;
         }
 
 
@@ -617,12 +683,14 @@ $items =
 
 
             .view-heading {
+                align-items: flex-start;
+                flex-direction: column;
+            }
 
-                align-items:
-                    flex-start;
-
-                flex-direction:
-                    column;
+            .heading-actions {
+                width: 100%;
+                align-items: flex-start;
+                flex-direction: column;
             }
 
 
@@ -724,12 +792,33 @@ $items =
         </div>
 
 
-        <a
-            href="purchases.php"
-            class="back-link"
-        >
-            ← Voltar para compras
-        </a>
+        <div class="heading-actions">
+            <a
+                href="purchases.php"
+                class="back-link"
+            >
+                ← Voltar para compras
+            </a>
+
+            <form
+                method="POST"
+                action="purchase-view.php?id=<?= (int) $purchase['id'] ?>"
+                id="deletePurchaseForm"
+            >
+                <input type="hidden" name="action" value="delete_purchase">
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>"
+                >
+                <button
+                    type="submit"
+                    class="delete-purchase-button"
+                >
+                    🗑️ Excluir compra
+                </button>
+            </form>
+        </div>
 
     </div>
 
@@ -999,6 +1088,22 @@ $items =
 
 
 <script>
+
+const deletePurchaseForm = document.getElementById('deletePurchaseForm');
+
+if (deletePurchaseForm) {
+    deletePurchaseForm.addEventListener('submit', (event) => {
+        const confirmed = confirm(
+            'Tem certeza que deseja excluir esta compra?\\n\\n' +
+            'A compra e todos os produtos associados serão removidos definitivamente. ' +
+            'Esta ação não pode ser desfeita.'
+        );
+
+        if (!confirmed) {
+            event.preventDefault();
+        }
+    });
+}
 
 const paymentButton =
     document.getElementById(
