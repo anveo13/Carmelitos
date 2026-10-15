@@ -1223,7 +1223,171 @@ $counts =
                 flex-wrap: wrap;
             }
         }
-</style>
+
+
+        /* =====================================================
+           MODAL DE RESUMO DA COMPRA
+        ===================================================== */
+        .purchase-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+            background: rgba(13, 31, 20, .55);
+            backdrop-filter: blur(3px);
+        }
+
+        .purchase-modal-backdrop.is-visible { display: flex; }
+
+        .purchase-modal {
+            position: relative;
+            width: min(100%, 440px);
+            box-sizing: border-box;
+            padding: 26px;
+            border-radius: 18px;
+            background: #fff;
+            box-shadow: 0 22px 70px rgba(0, 0, 0, .22);
+            animation: purchaseModalIn .18s ease-out;
+        }
+
+        @keyframes purchaseModalIn {
+            from { opacity: 0; transform: translateY(8px) scale(.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .purchase-modal-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            display: grid;
+            place-items: center;
+            width: 36px;
+            height: 36px;
+            border: 0;
+            border-radius: 10px;
+            background: #f1f5f2;
+            color: #405247;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .purchase-modal-close:hover { background: #e4ece6; }
+
+        .purchase-modal-eyebrow {
+            margin: 0 40px 7px 0;
+            color: #7a857f;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .purchase-modal h2 {
+            margin: 0 36px 20px 0;
+            color: #123d26;
+            font-size: 23px;
+        }
+
+        .purchase-modal-person {
+            margin-bottom: 18px;
+            padding: 14px;
+            border-radius: 12px;
+            background: #f6f8f6;
+        }
+
+        .purchase-modal-person strong {
+            display: block;
+            color: #123d26;
+            font-size: 15px;
+        }
+
+        .purchase-modal-person span {
+            display: block;
+            margin-top: 4px;
+            color: #77837b;
+            font-size: 12px;
+        }
+
+        .purchase-modal-data {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .purchase-modal-data > div {
+            padding: 12px;
+            border: 1px solid #e7ece8;
+            border-radius: 11px;
+        }
+
+        .purchase-modal-data small {
+            display: block;
+            margin-bottom: 5px;
+            color: #7a857f;
+            font-size: 11px;
+        }
+
+        .purchase-modal-data strong {
+            color: #183b28;
+            font-size: 14px;
+        }
+
+        .purchase-modal-total {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 22px;
+            padding-top: 16px;
+            border-top: 1px solid #edf0ee;
+        }
+
+        .purchase-modal-total span { color: #68736d; font-size: 13px; }
+        .purchase-modal-total strong { color: #02511F; font-size: 24px; }
+
+        .purchase-modal-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .purchase-modal-actions button,
+        .purchase-modal-actions a {
+            display: inline-flex;
+            flex: 1;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            box-sizing: border-box;
+            padding: 10px 14px;
+            border: 0;
+            border-radius: 10px;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 800;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .purchase-modal-cancel { background: #eef2ef; color: #526158; }
+        .purchase-modal-full { background: #02511F; color: #fff; }
+        .purchase-modal-full:hover { background: #036b29; }
+
+        button.purchase-detail-link {
+            border: 0;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        @media (max-width: 480px) {
+            .purchase-modal { padding: 22px 18px; }
+            .purchase-modal-actions { flex-direction: column-reverse; }
+        }
+
+        </style>
 
 </head>
 
@@ -1718,16 +1882,18 @@ $counts =
                                 </span>
 
 
-                                <a
-                                    href="
-                                        purchase-view.php?id=
-                                        <?= (int) $detail['id'] ?>
-                                    "
-                                    class="purchase-detail-link"
-                                    onclick="event.stopPropagation();"
+                                <button
+                                    type="button"
+                                    class="purchase-detail-link js-open-purchase-modal"
+                                    data-purchase-id="<?= (int) $detail['id'] ?>"
+                                    data-person-name="<?= htmlspecialchars($purchase['person_name'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-team-name="<?= htmlspecialchars($purchase['team_name'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-purchase-date="<?= date('d/m/Y', strtotime($detail['created_at'])) ?>"
+                                    data-purchase-total="<?= htmlspecialchars(number_format((float) $detail['total'], 2, ',', '.'), ENT_QUOTES, 'UTF-8') ?>"
+                                    data-purchase-status="<?= $detail['status'] === 'paid' ? 'Pago' : 'Pendente' ?>"
                                 >
                                     Ver
-                                </a>
+                                </button>
 
                             </div>
 
@@ -1769,6 +1935,30 @@ $counts =
 
 </main>
 
+
+<div class="purchase-modal-backdrop" id="purchase-modal-backdrop" aria-hidden="true">
+    <section class="purchase-modal" role="dialog" aria-modal="true" aria-labelledby="purchase-modal-title">
+        <button type="button" class="purchase-modal-close" id="purchase-modal-close" aria-label="Fechar janela">&times;</button>
+        <p class="purchase-modal-eyebrow">Resumo da compra</p>
+        <h2 id="purchase-modal-title">Compra #<span id="modal-purchase-id"></span></h2>
+        <div class="purchase-modal-person">
+            <strong id="modal-person-name"></strong>
+            <span id="modal-team-name"></span>
+        </div>
+        <div class="purchase-modal-data">
+            <div><small>Data da compra</small><strong id="modal-purchase-date"></strong></div>
+            <div><small>Situação</small><strong id="modal-purchase-status"></strong></div>
+        </div>
+        <div class="purchase-modal-total">
+            <span>Valor total</span>
+            <strong>R$ <span id="modal-purchase-total"></span></strong>
+        </div>
+        <div class="purchase-modal-actions">
+            <button type="button" class="purchase-modal-cancel" id="purchase-modal-cancel">Fechar</button>
+            <a href="#" class="purchase-modal-full" id="purchase-modal-full">Ver compra completa →</a>
+        </div>
+    </section>
+</div>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
 
@@ -2240,6 +2430,57 @@ filterPurchaseCards();
 
 </script>
 
+
+<script>
+(function () {
+    const backdrop = document.getElementById('purchase-modal-backdrop');
+    if (!backdrop) return;
+
+    const closeButton = document.getElementById('purchase-modal-close');
+    const cancelButton = document.getElementById('purchase-modal-cancel');
+    const fullLink = document.getElementById('purchase-modal-full');
+    let previousFocus = null;
+
+    function closePurchaseModal() {
+        backdrop.classList.remove('is-visible');
+        backdrop.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+        if (previousFocus) previousFocus.focus();
+    }
+
+    document.querySelectorAll('.js-open-purchase-modal').forEach(button => {
+        button.addEventListener('click', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            previousFocus = button;
+
+            document.getElementById('modal-purchase-id').textContent = button.dataset.purchaseId || '';
+            document.getElementById('modal-person-name').textContent = button.dataset.personName || '';
+            document.getElementById('modal-team-name').textContent = 'Equipe: ' + (button.dataset.teamName || 'Não informada');
+            document.getElementById('modal-purchase-date').textContent = button.dataset.purchaseDate || '—';
+            document.getElementById('modal-purchase-status').textContent = button.dataset.purchaseStatus || '—';
+            document.getElementById('modal-purchase-total').textContent = button.dataset.purchaseTotal || '0,00';
+            fullLink.href = 'purchase-view.php?id=' + encodeURIComponent(button.dataset.purchaseId || '');
+
+            backdrop.classList.add('is-visible');
+            backdrop.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+            closeButton.focus();
+        });
+    });
+
+    closeButton.addEventListener('click', closePurchaseModal);
+    cancelButton.addEventListener('click', closePurchaseModal);
+    backdrop.addEventListener('click', event => {
+        if (event.target === backdrop) closePurchaseModal();
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && backdrop.classList.contains('is-visible')) {
+            closePurchaseModal();
+        }
+    });
+})();
+</script>
 
 </body>
 
