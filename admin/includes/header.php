@@ -134,7 +134,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
         <a
             href="stock.php"
-            class="<?= $currentPage === 'stock.php'
+            class="<?= in_array(
+                $currentPage,
+                [
+                    'stock.php',
+                    'stock-history.php'
+                ],
+                true
+            )
                 ? 'active'
                 : '' ?>"
         >

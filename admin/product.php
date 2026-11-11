@@ -28,6 +28,8 @@ require_once __DIR__ . '/../config/database.php';
 
 require_once __DIR__ . '/../config/security.php';
 
+require_once __DIR__ . '/../config/stock.php';
+
 
 /*
 |--------------------------------------------------------------------------
@@ -297,6 +299,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($submittedId) {
 
 
+                $pdo->beginTransaction();
+
+
+                /*
+                | Estoque antes da edição, para registrar
+                | a diferença como correção.
+                */
+
+                $stmt = $pdo->prepare("
+                    SELECT stock
+                    FROM products
+                    WHERE id = ?
+                    LIMIT 1
+                    FOR UPDATE
+                ");
+
+                $stmt->execute([
+                    $submittedId
+                ]);
+
+                $previousStock =
+                    $stmt->fetchColumn();
+
+
                 $stmt = $pdo->prepare("
                     UPDATE products
 
@@ -333,6 +359,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $submittedId
 
                 ]);
+
+
+                if (
+                    $previousStock !== false &&
+                    $stock !== (int) $previousStock
+                ) {
+
+                    stock_log_movement(
+                        $pdo,
+                        $submittedId,
+                        'adjustment',
+                        $stock - (int) $previousStock
+                    );
+
+                }
+
+
+                $pdo->commit();
 
 
                 header(
@@ -392,6 +436,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $active
 
                 ]);
+
+
+                if ($stock > 0) {
+
+                    stock_log_movement(
+                        $pdo,
+                        (int) $pdo->lastInsertId(),
+                        'initial',
+                        $stock
+                    );
+
+                }
 
 
                 header(
@@ -1242,6 +1298,8 @@ $pageTitle =
 
                     Quantas unidades existem agora.
                     Cada venda desconta deste número.
+                    Para registrar um reabastecimento,
+                    use a área Estoque.
 
                 </div>
 

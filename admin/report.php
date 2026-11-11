@@ -159,12 +159,27 @@ $stmt = $pdo->query("
 
         COALESCE(s.quantity, 0) AS sold_quantity,
 
-        COALESCE(s.revenue, 0) AS sold_revenue
+        COALESCE(s.revenue, 0) AS sold_revenue,
+
+        COALESCE(r.quantity, 0) AS restocked,
+
+        COALESCE(r.restocks, 0) AS restocks
 
     FROM products p
 
     INNER JOIN categories c
         ON c.id = p.category_id
+
+    LEFT JOIN (
+        SELECT
+            product_id,
+            SUM(quantity) AS quantity,
+            COUNT(*) AS restocks
+        FROM stock_movements
+        WHERE type = 'restock'
+        GROUP BY product_id
+    ) r
+        ON r.product_id = p.id
 
     LEFT JOIN (
         SELECT
@@ -202,6 +217,10 @@ $itemsSold = 0;
 
 $itemsRevenue = 0;
 
+$restockedUnits = 0;
+
+$restockCount = 0;
+
 $stockUnits = 0;
 
 $stockValue = 0;
@@ -222,6 +241,10 @@ foreach ($products as $product) {
     $itemsSold += $quantity;
 
     $itemsRevenue += $revenue;
+
+    $restockedUnits += (int) $product['restocked'];
+
+    $restockCount += (int) $product['restocks'];
 
 
     if ($quantity > 0) {
@@ -1188,8 +1211,17 @@ usort(
         </h2>
 
         <p>
+
             Em vermelho: produtos esgotados ou com
             <?= LOW_STOCK_LIMIT ?> unidades ou menos.
+
+            <?php if ($restockCount > 0): ?>
+
+                Houve <?= $restockCount ?> reabastecimento(s),
+                somando <?= $restockedUnits ?> unidades repostas.
+
+            <?php endif; ?>
+
         </p>
 
 
@@ -1203,6 +1235,7 @@ usort(
 
                         <tr>
                             <th>Produto</th>
+                            <th class="number">Reposto</th>
                             <th class="number">Vendido</th>
                             <th class="number">Sobrou</th>
                             <th class="number">Valor parado</th>
@@ -1248,6 +1281,10 @@ usort(
                                 </td>
 
                                 <td class="number">
+                                    <?= (int) $product['restocked'] ?>
+                                </td>
+
+                                <td class="number">
                                     <?= (int) $product['sold_quantity'] ?>
                                 </td>
 
@@ -1287,6 +1324,9 @@ usort(
 
                         <tr>
                             <td>Total</td>
+                            <td class="number">
+                                <?= $restockedUnits ?>
+                            </td>
                             <td class="number">
                                 <?= $itemsSold ?>
                             </td>

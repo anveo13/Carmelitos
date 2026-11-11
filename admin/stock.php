@@ -60,48 +60,173 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
 
 
-    $stock =
+    $action =
+        $_POST['action'] ?? '';
+
+
+    $quantity =
         filter_var(
             trim(
-                $_POST['stock'] ?? ''
+                $_POST['quantity'] ?? ''
             ),
             FILTER_VALIDATE_INT
         );
 
 
-    $result = 'error';
+    $result = [
+        'error' => 1
+    ];
 
 
-    if (
-        $productId &&
-        $stock !== false &&
-        $stock >= 0
-    ) {
+    try {
+
+        $pdo->beginTransaction();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Trava o produto para ler o estoque atual
+        |--------------------------------------------------------------------------
+        */
 
         $stmt = $pdo->prepare("
-            UPDATE products
-            SET stock = ?
+            SELECT stock
+            FROM products
             WHERE id = ?
             LIMIT 1
+            FOR UPDATE
         ");
 
         $stmt->execute([
-            $stock,
-            $productId
+            $productId ?: 0
         ]);
 
+        $currentStock =
+            $stmt->fetchColumn();
 
-        $result = 'saved';
+
+        /*
+        |--------------------------------------------------------------------------
+        | REABASTECER
+        |--------------------------------------------------------------------------
+        |
+        | Soma a quantidade que chegou ao estoque atual.
+        |
+        */
+
+        if (
+            $action === 'restock' &&
+            $currentStock !== false &&
+            $quantity !== false &&
+            $quantity >= 1
+        ) {
+
+            $stmt = $pdo->prepare("
+                UPDATE products
+                SET stock = stock + ?
+                WHERE id = ?
+                LIMIT 1
+            ");
+
+            $stmt->execute([
+                $quantity,
+                $productId
+            ]);
+
+
+            stock_log_movement(
+                $pdo,
+                $productId,
+                'restock',
+                $quantity
+            );
+
+
+            $result = [
+                'saved' => 'restock'
+            ];
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CORRIGIR
+        |--------------------------------------------------------------------------
+        |
+        | Define a quantidade exata (ex.: depois de contar
+        | os produtos). Não conta como reabastecimento.
+        |
+        */
+
+        elseif (
+            $action === 'set' &&
+            $currentStock !== false &&
+            $quantity !== false &&
+            $quantity >= 0
+        ) {
+
+            $difference =
+                $quantity - (int) $currentStock;
+
+
+            if ($difference !== 0) {
+
+                $stmt = $pdo->prepare("
+                    UPDATE products
+                    SET stock = ?
+                    WHERE id = ?
+                    LIMIT 1
+                ");
+
+                $stmt->execute([
+                    $quantity,
+                    $productId
+                ]);
+
+
+                stock_log_movement(
+                    $pdo,
+                    $productId,
+                    'adjustment',
+                    $difference
+                );
+
+            }
+
+
+            $result = [
+                'saved' => 'set'
+            ];
+
+        }
+
+
+        $pdo->commit();
+
+    } catch (Throwable $error) {
+
+        if ($pdo->inTransaction()) {
+
+            $pdo->rollBack();
+
+        }
+
+
+        $result = [
+            'error' => 1
+        ];
 
     }
 
 
     header(
         'Location: stock.php?' .
-        http_build_query([
-            'filter' => $filter,
-            $result => 1
-        ])
+        http_build_query(
+            [
+                'filter' => $filter
+            ] + $result
+        )
     );
 
     exit;
@@ -123,12 +248,24 @@ $stmt = $pdo->query("
         p.stock,
         p.active,
 
-        c.name AS category_name
+        c.name AS category_name,
+
+        COALESCE(r.quantity, 0) AS restocked
 
     FROM products p
 
     INNER JOIN categories c
         ON c.id = p.category_id
+
+    LEFT JOIN (
+        SELECT
+            product_id,
+            SUM(quantity) AS quantity
+        FROM stock_movements
+        WHERE type = 'restock'
+        GROUP BY product_id
+    ) r
+        ON r.product_id = p.id
 
     ORDER BY
         p.active DESC,
@@ -256,7 +393,54 @@ foreach ($allProducts as $product) {
 
         .page-heading {
 
+            display: flex;
+
+            align-items: flex-end;
+
+            justify-content:
+                space-between;
+
+            flex-wrap: wrap;
+
+            gap: 20px;
+
             margin-bottom: 25px;
+        }
+
+
+        .history-button {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            min-height: 44px;
+
+            padding:
+                0 18px;
+
+            border:
+                1px solid #02511F;
+
+            border-radius: 10px;
+
+            background: white;
+
+            color: #02511F;
+
+            text-decoration: none;
+
+            font-size: 14px;
+
+            font-weight: 800;
+        }
+
+
+        .history-button:hover {
+
+            background: #E7F6EA;
         }
 
 
@@ -640,6 +824,44 @@ foreach ($allProducts as $product) {
         }
 
 
+        /* Correção manual da quantidade */
+
+        .stock-fix {
+
+            margin-top: 8px;
+        }
+
+
+        .stock-fix summary {
+
+            color: #7a857f;
+
+            font-size: 12px;
+
+            font-weight: 700;
+
+            cursor: pointer;
+        }
+
+
+        .stock-fix .stock-form {
+
+            margin-top: 8px;
+        }
+
+
+        .stock-fix .stock-form button {
+
+            background: #6B6A66;
+        }
+
+
+        .stock-fix .stock-form button:hover {
+
+            background: #4A4033;
+        }
+
+
         .empty-stock {
 
             padding:
@@ -677,7 +899,7 @@ foreach ($allProducts as $product) {
             }
 
 
-            .stock-form {
+            .stock-actions {
 
                 grid-column: 1 / -1;
             }
@@ -704,15 +926,27 @@ foreach ($allProducts as $product) {
 
     <div class="page-heading">
 
-        <h1>
-            🗃️ Estoque
-        </h1>
+        <div>
 
-        <p>
-            Veja o que ainda tem e ajuste as quantidades.
-            Com <?= LOW_STOCK_LIMIT ?> unidades ou menos,
-            o produto fica em vermelho.
-        </p>
+            <h1>
+                🗃️ Estoque
+            </h1>
+
+            <p>
+                Veja o que ainda tem e registre o que chegou.
+                Com <?= LOW_STOCK_LIMIT ?> unidades ou menos,
+                o produto fica em vermelho.
+            </p>
+
+        </div>
+
+
+        <a
+            href="stock-history.php"
+            class="history-button"
+        >
+            📜 Histórico
+        </a>
 
     </div>
 
@@ -791,16 +1025,22 @@ foreach ($allProducts as $product) {
          MENSAGEM
     ====================================================== -->
 
-    <?php if (isset($_GET['saved'])): ?>
+    <?php if (($_GET['saved'] ?? '') === 'restock'): ?>
 
         <div class="stock-message">
-            ✅ Estoque atualizado.
+            ✅ Reabastecimento registrado.
+        </div>
+
+    <?php elseif (isset($_GET['saved'])): ?>
+
+        <div class="stock-message">
+            ✅ Quantidade corrigida.
         </div>
 
     <?php elseif (isset($_GET['error'])): ?>
 
         <div class="stock-message error">
-            Informe uma quantidade válida (número inteiro, zero ou mais).
+            Informe uma quantidade válida (número inteiro).
         </div>
 
     <?php endif; ?>
@@ -897,6 +1137,11 @@ foreach ($allProducts as $product) {
                             : ''
                         ?>
 
+                        <?= (int) $product['restocked'] > 0
+                            ? '· Reposto: ' . (int) $product['restocked']
+                            : ''
+                        ?>
+
                     </span>
 
                 </div>
@@ -929,50 +1174,126 @@ foreach ($allProducts as $product) {
                 </div>
 
 
-                <form
-                    method="POST"
-                    class="stock-form"
-                    autocomplete="off"
-                >
+                <div class="stock-actions">
 
-                    <input
-                        type="hidden"
-                        name="csrf_token"
-                        value="<?= htmlspecialchars(
-                            csrf_token()
-                        ) ?>"
+
+                    <!-- REABASTECER: soma ao estoque -->
+
+                    <form
+                        method="POST"
+                        class="stock-form"
+                        autocomplete="off"
                     >
 
-                    <input
-                        type="hidden"
-                        name="filter"
-                        value="<?= $filter ?>"
-                    >
+                        <input
+                            type="hidden"
+                            name="csrf_token"
+                            value="<?= htmlspecialchars(
+                                csrf_token()
+                            ) ?>"
+                        >
 
-                    <input
-                        type="hidden"
-                        name="product_id"
-                        value="<?= (int) $product['id'] ?>"
-                    >
+                        <input
+                            type="hidden"
+                            name="filter"
+                            value="<?= $filter ?>"
+                        >
 
-                    <input
-                        type="number"
-                        name="stock"
-                        value="<?= max(0, $product['stock']) ?>"
-                        min="0"
-                        step="1"
-                        inputmode="numeric"
-                        aria-label="Nova quantidade de <?= htmlspecialchars(
-                            $product['name']
-                        ) ?>"
-                        required
-                    >
+                        <input
+                            type="hidden"
+                            name="action"
+                            value="restock"
+                        >
 
-                    <button type="submit">
-                        Salvar
-                    </button>
+                        <input
+                            type="hidden"
+                            name="product_id"
+                            value="<?= (int) $product['id'] ?>"
+                        >
 
-                </form>
+                        <input
+                            type="number"
+                            name="quantity"
+                            placeholder="Chegou..."
+                            min="1"
+                            step="1"
+                            inputmode="numeric"
+                            aria-label="Quantidade reposta de <?= htmlspecialchars(
+                                $product['name']
+                            ) ?>"
+                            required
+                        >
+
+                        <button type="submit">
+                            + Repor
+                        </button>
+
+                    </form>
+
+
+                    <!-- CORRIGIR: define a quantidade exata -->
+
+                    <details class="stock-fix">
+
+                        <summary>
+                            Corrigir quantidade
+                        </summary>
+
+                        <form
+                            method="POST"
+                            class="stock-form"
+                            autocomplete="off"
+                        >
+
+                            <input
+                                type="hidden"
+                                name="csrf_token"
+                                value="<?= htmlspecialchars(
+                                    csrf_token()
+                                ) ?>"
+                            >
+
+                            <input
+                                type="hidden"
+                                name="filter"
+                                value="<?= $filter ?>"
+                            >
+
+                            <input
+                                type="hidden"
+                                name="action"
+                                value="set"
+                            >
+
+                            <input
+                                type="hidden"
+                                name="product_id"
+                                value="<?= (int) $product['id'] ?>"
+                            >
+
+                            <input
+                                type="number"
+                                name="quantity"
+                                value="<?= max(0, $product['stock']) ?>"
+                                min="0"
+                                step="1"
+                                inputmode="numeric"
+                                aria-label="Quantidade exata de <?= htmlspecialchars(
+                                    $product['name']
+                                ) ?>"
+                                required
+                            >
+
+                            <button type="submit">
+                                Corrigir
+                            </button>
+
+                        </form>
+
+                    </details>
+
+
+                </div>
 
 
             </div>
