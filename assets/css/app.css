@@ -358,6 +358,26 @@ select:focus {
     font-weight: 700;
 }
 
+.product-stock {
+    display: block;
+
+    margin-top: 8px;
+
+    color: #7a857f;
+
+    font-size: 13px;
+
+    font-weight: 600;
+}
+
+/* Estoque acabando ou esgotado */
+.product-stock.low,
+.product-stock.out {
+    color: #D94B4B;
+
+    font-weight: 800;
+}
+
 
 /* ========================================
    CARRINHO

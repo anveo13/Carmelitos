@@ -2,6 +2,8 @@
 
 require_once __DIR__ . '/../config/database.php';
 
+require_once __DIR__ . '/../config/stock.php';
+
 header('Content-Type: application/json; charset=utf-8');
 
 try {
@@ -11,6 +13,7 @@ try {
             p.id,
             p.name,
             p.price,
+            p.stock,
             p.category_id,
             c.name AS category_name
         FROM products p
@@ -20,6 +23,16 @@ try {
     ");
 
     $products = $stmt->fetchAll();
+
+    foreach ($products as &$product) {
+
+        $product['stock'] = (int) $product['stock'];
+
+        $product['stock_level'] = stock_level($product['stock']);
+
+    }
+
+    unset($product);
 
     echo json_encode([
         'success' => true,

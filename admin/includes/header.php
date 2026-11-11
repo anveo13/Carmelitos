@@ -52,7 +52,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
         <a
             href="index.php"
-            class="<?= $currentPage === 'index.php'
+            class="<?= in_array(
+                $currentPage,
+                [
+                    'index.php',
+                    'report.php'
+                ],
+                true
+            )
                 ? 'active'
                 : '' ?>"
         >
@@ -121,6 +128,18 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         >
 
             📦 Produtos
+
+        </a>
+
+
+        <a
+            href="stock.php"
+            class="<?= $currentPage === 'stock.php'
+                ? 'active'
+                : '' ?>"
+        >
+
+            🗃️ Estoque
 
         </a>
 

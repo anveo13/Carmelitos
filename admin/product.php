@@ -67,6 +67,8 @@ $product = [
 
     'price' => '',
 
+    'stock' => 0,
+
     'active' => 1
 
 ];
@@ -86,6 +88,7 @@ if ($productId) {
             name,
             category_id,
             price,
+            stock,
             active
 
         FROM products
@@ -197,6 +200,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
 
 
+    $stockInput =
+        trim(
+            $_POST['stock'] ?? ''
+        );
+
+
+    $stock =
+        filter_var(
+            $stockInput,
+            FILTER_VALIDATE_INT
+        );
+
+
     $active =
         isset(
             $_POST['active']
@@ -230,6 +246,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $error =
             'Informe um preço válido.';
+
+
+    } elseif (
+        $stock === false ||
+        $stock < 0
+    ) {
+
+        $error =
+            'Informe uma quantidade em estoque válida.';
 
 
     } else {
@@ -279,6 +304,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         name = ?,
                         category_id = ?,
                         price = ?,
+                        stock = ?,
                         active = ?
 
                     WHERE id = ?
@@ -299,6 +325,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         '.',
                         ''
                     ),
+
+                    $stock,
 
                     $active,
 
@@ -331,11 +359,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         name,
                         category_id,
                         price,
+                        stock,
                         active
                     )
 
                     VALUES
                     (
+                        ?,
                         ?,
                         ?,
                         ?,
@@ -356,6 +386,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         '.',
                         ''
                     ),
+
+                    $stock,
 
                     $active
 
@@ -391,6 +423,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $product['price'] =
         $priceInput;
+
+
+    $product['stock'] =
+        $stockInput;
 
 
     $product['active'] =
@@ -1168,6 +1204,44 @@ $pageTitle =
                 <div class="field-help">
 
                     Exemplo: 5,00
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 ESTOQUE
+            ================================================== -->
+
+            <div class="form-group">
+
+                <label for="stock">
+
+                    Quantidade em estoque
+
+                </label>
+
+
+                <input
+                    type="number"
+                    id="stock"
+                    name="stock"
+                    value="<?= htmlspecialchars(
+                        (string)
+                        $product['stock']
+                    ) ?>"
+                    min="0"
+                    step="1"
+                    inputmode="numeric"
+                    required
+                >
+
+
+                <div class="field-help">
+
+                    Quantas unidades existem agora.
+                    Cada venda desconta deste número.
 
                 </div>
 

@@ -9,6 +9,8 @@ if (!isset($_SESSION['admin_id'])) {
 
 require_once __DIR__ . '/../config/database.php';
 
+require_once __DIR__ . '/../config/stock.php';
+
 
 /*
 |--------------------------------------------------------------------------
@@ -57,6 +59,7 @@ $sql = "
         p.id,
         p.name,
         p.price,
+        p.stock,
         p.active,
         p.created_at,
 
@@ -532,6 +535,29 @@ $counts =
         }
 
 
+        .product-stock {
+
+            margin-top: 6px;
+
+            color: #7a857f;
+
+            font-size: 13px;
+
+            font-weight: 700;
+        }
+
+
+        /* Estoque acabando ou esgotado */
+
+        .product-stock.low,
+        .product-stock.out {
+
+            color: #D94B4B;
+
+            font-weight: 800;
+        }
+
+
         /* =====================================================
            ACTIONS
         ===================================================== */
@@ -966,6 +992,22 @@ $counts =
                             2,
                             ',',
                             '.'
+                        ) ?>
+
+                    </div>
+
+
+                    <div
+                        class="
+                            product-stock
+                            <?= stock_level(
+                                (int) $product['stock']
+                            ) ?>
+                        "
+                    >
+
+                        <?= stock_label(
+                            (int) $product['stock']
                         ) ?>
 
                     </div>

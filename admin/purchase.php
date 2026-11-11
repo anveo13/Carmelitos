@@ -9,6 +9,7 @@ if (!isset($_SESSION['admin_id'])) {
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/security.php';
+require_once __DIR__ . '/../config/stock.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -37,6 +38,7 @@ $stmt = $pdo->query("
         p.id,
         p.name,
         p.price,
+        p.stock,
         p.category_id,
         c.name AS category_name
     FROM products p
@@ -204,6 +206,21 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             color: #02511F;
             font-size: 13px;
             font-weight: 700;
+        }
+
+        .product-stock {
+            display: block;
+            margin-top: 6px;
+            color: #7a857f;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Estoque acabando ou esgotado */
+        .product-stock.low,
+        .product-stock.out {
+            color: #D94B4B;
+            font-weight: 800;
         }
 
         .cart-list {
@@ -840,6 +857,10 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         ',',
                                         '.'
                                     ) ?>
+                                </span>
+
+                                <span class="product-stock <?= stock_level((int) $product['stock']) ?>">
+                                    <?= stock_label((int) $product['stock']) ?>
                                 </span>
 
                             </button>

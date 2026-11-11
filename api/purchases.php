@@ -502,6 +502,25 @@ try {
         ");
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | BAIXA NO ESTOQUE
+        |--------------------------------------------------------------------------
+        |
+        | A venda nunca é bloqueada por falta de estoque.
+        | Se vender mais do que o cadastrado, o estoque
+        | fica negativo.
+        |
+        */
+
+        $stockStmt = $pdo->prepare("
+            UPDATE products
+            SET stock = stock - ?
+            WHERE id = ?
+            LIMIT 1
+        ");
+
+
         foreach ($validatedItems as $item) {
 
             $itemStmt->execute([
@@ -515,6 +534,15 @@ try {
                 $item['unit_price'],
 
                 $item['subtotal']
+
+            ]);
+
+
+            $stockStmt->execute([
+
+                $item['quantity'],
+
+                $item['product_id']
 
             ]);
 

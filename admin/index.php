@@ -731,6 +731,14 @@ ksort($teams);
 
         </div>
 
+
+        <a
+            href="report.php"
+            class="report-button"
+        >
+            📄 Gerar relatório
+        </a>
+
     </div>
 
 

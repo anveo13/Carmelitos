@@ -80,6 +80,33 @@ try {
 
     /*
     |--------------------------------------------------------------------------
+    | DEVOLVER AO ESTOQUE
+    |--------------------------------------------------------------------------
+    */
+
+    $stmt = $pdo->prepare("
+        UPDATE products p
+
+        INNER JOIN (
+            SELECT
+                product_id,
+                SUM(quantity) AS quantity
+            FROM purchase_items
+            WHERE purchase_id = ?
+            GROUP BY product_id
+        ) pi
+            ON pi.product_id = p.id
+
+        SET p.stock = p.stock + pi.quantity
+    ");
+
+    $stmt->execute([
+        $purchaseId
+    ]);
+
+
+    /*
+    |--------------------------------------------------------------------------
     | REMOVER ITENS
     |--------------------------------------------------------------------------
     */

@@ -50,6 +50,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
     try {
         $pdo->beginTransaction();
 
+        // Devolve ao estoque os produtos da compra excluída.
+        $restoreStock = $pdo->prepare(
+            'UPDATE products p
+             INNER JOIN (
+                 SELECT product_id, SUM(quantity) AS quantity
+                 FROM purchase_items
+                 WHERE purchase_id = ?
+                 GROUP BY product_id
+             ) pi ON pi.product_id = p.id
+             SET p.stock = p.stock + pi.quantity'
+        );
+        $restoreStock->execute([$purchaseId]);
+
         // Exclui os itens antes da compra para respeitar possíveis chaves estrangeiras.
         $deleteItems = $pdo->prepare(
             'DELETE FROM purchase_items WHERE purchase_id = ?'

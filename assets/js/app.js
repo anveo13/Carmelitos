@@ -434,6 +434,22 @@ function renderProducts(
 
                         </span>
 
+
+                        <span
+                            class="product-stock ${escapeHTML(
+                                product.stock_level
+                            )}"
+                        >
+
+                            ${
+                                product.stock_level === 'out'
+                                    ? 'Esgotado'
+                                    : Number(product.stock) +
+                                      ' em estoque'
+                            }
+
+                        </span>
+
                     `;
 
 
