@@ -189,6 +189,18 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         </a>
 
 
+        <a
+            href="fees.php"
+            class="<?= $currentPage === 'fees.php'
+                ? 'active'
+                : '' ?>"
+        >
+
+            💳 Juros
+
+        </a>
+
+
     </nav>
 
 

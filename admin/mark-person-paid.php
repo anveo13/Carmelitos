@@ -11,6 +11,8 @@ if (!isset($_SESSION['admin_id'])) {
 
 require_once __DIR__ . '/../config/database.php';
 
+require_once __DIR__ . '/../config/payments.php';
+
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
@@ -34,24 +36,26 @@ if ($personId <= 0) {
 $returnUrl = $_POST['return_url'] ?? 'purchases.php';
 
 
+$paymentMethod = $_POST['payment_method'] ?? null;
+
+
+if (!payment_method_valid($paymentMethod)) {
+
+    exit('Selecione a forma de pagamento.');
+
+}
+
+
 try {
 
     $pdo->beginTransaction();
 
 
-    $update = $pdo->prepare(
-        "
-        UPDATE purchases
-        SET status = 'paid'
-        WHERE person_id = ?
-        AND status = 'pending'
-        "
+    payment_pay_person(
+        $pdo,
+        $personId,
+        $paymentMethod
     );
-
-
-    $update->execute([
-        $personId
-    ]);
 
 
     $pdo->commit();

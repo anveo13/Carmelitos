@@ -9,12 +9,17 @@ if (!isset($_SESSION['admin_id'])) {
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/security.php';
+require_once __DIR__ . '/../config/payments.php';
 
 
 /*
 |--------------------------------------------------------------------------
 | MARCAR TODAS AS COMPRAS PENDENTES DA PESSOA COMO PAGAS
 |--------------------------------------------------------------------------
+|
+| Gera um pagamento só, com a forma de pagamento escolhida.
+| O juros é calculado uma vez, sobre o total pendente.
+|
 */
 
 if (
@@ -26,21 +31,59 @@ if (
         $_POST['person_id'] ?? 0
     );
 
+    if (
+        !csrf_validate(
+            $_POST['csrf_token'] ?? null
+        )
+    ) {
+
+        http_response_code(403);
+
+        exit('Solicitação inválida.');
+
+    }
+
+
+    $paymentMethod =
+        $_POST['payment_method'] ?? null;
+
+
+    if (!payment_method_valid($paymentMethod)) {
+
+        http_response_code(400);
+
+        exit('Selecione a forma de pagamento.');
+
+    }
+
+
     if ($personId > 0) {
 
-        $payStmt = $pdo->prepare("
-            UPDATE purchases
-            SET
-                status = 'paid',
-                paid_at = NOW()
-            WHERE
-                person_id = ?
-                AND status = 'pending'
-        ");
+        try {
 
-        $payStmt->execute([
-            $personId
-        ]);
+            $pdo->beginTransaction();
+
+            payment_pay_person(
+                $pdo,
+                $personId,
+                $paymentMethod
+            );
+
+            $pdo->commit();
+
+        } catch (Throwable $error) {
+
+            if ($pdo->inTransaction()) {
+
+                $pdo->rollBack();
+
+            }
+
+            http_response_code(500);
+
+            exit('Não foi possível registrar o pagamento. Nada foi alterado.');
+
+        }
 
     }
 
@@ -1839,7 +1882,30 @@ $counts =
                                     method="post"
                                     class="mark-paid-form"
                                     onclick="event.stopPropagation();"
+                                    data-person-name="<?= htmlspecialchars(
+                                        $purchase['person_name'],
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    ) ?>"
+                                    data-pending-count="<?= (int) $purchase['pending_count'] ?>"
+                                    data-pending-value="<?= (float) $purchase['pending_value'] ?>"
                                 >
+
+                                    <input
+                                        type="hidden"
+                                        name="csrf_token"
+                                        value="<?= htmlspecialchars(
+                                            csrf_token(),
+                                            ENT_QUOTES,
+                                            'UTF-8'
+                                        ) ?>"
+                                    >
+
+                                    <input
+                                        type="hidden"
+                                        name="payment_method"
+                                        value=""
+                                    >
 
                                     <input
                                         type="hidden"
@@ -1866,7 +1932,7 @@ $counts =
                                     <button
                                         type="submit"
                                         class="mark-person-paid"
-                                        onclick="event.stopPropagation(); return confirm('Marcar todas as compras pendentes desta pessoa como pagas?');"
+                                        onclick="event.stopPropagation();"
                                     >
                                         💰 Marcar como pago
                                     </button>
@@ -2039,6 +2105,77 @@ $counts =
 </div>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
+
+<?php require_once __DIR__ . '/includes/payment-modal.php'; ?>
+
+
+<script>
+
+/*
+|--------------------------------------------------------------------------
+| MARCAR COMO PAGO: ESCOLHER A FORMA DE PAGAMENTO
+|--------------------------------------------------------------------------
+*/
+
+document
+    .querySelectorAll('.mark-paid-form')
+    .forEach(form => {
+
+        form.addEventListener(
+            'submit',
+            event => {
+
+                const methodInput =
+                    form.querySelector(
+                        'input[name="payment_method"]'
+                    );
+
+
+                // Forma já escolhida no modal: deixa enviar.
+                if (methodInput.value) {
+                    return;
+                }
+
+
+                event.preventDefault();
+
+
+                const count =
+                    Number(form.dataset.pendingCount);
+
+
+                openPaymentModal({
+
+                    person:
+                        form.dataset.personName,
+
+                    description:
+                        count === 1
+                            ? '1 compra pendente'
+                            : count + ' compras pendentes',
+
+                    amount:
+                        Number(form.dataset.pendingValue),
+
+                    onConfirm: method => {
+
+                        methodInput.value = method;
+
+                        form.submit();
+
+                        // Se voltar para esta tela, o modal abre de novo.
+                        methodInput.value = '';
+
+                    }
+
+                });
+
+            }
+        );
+
+    });
+
+</script>
 
 
 <script>

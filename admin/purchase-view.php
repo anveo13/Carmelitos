@@ -11,6 +11,8 @@ require_once __DIR__ . '/../config/database.php';
 
 require_once __DIR__ . '/../config/security.php';
 
+require_once __DIR__ . '/../config/payments.php';
+
 
 /*
 |--------------------------------------------------------------------------
@@ -63,6 +65,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
         );
         $restoreStock->execute([$purchaseId]);
 
+        // Pagamento da compra, para recalcular depois da exclusão.
+        $paymentId = payment_id_of_purchase($pdo, $purchaseId);
+
         // Exclui os itens antes da compra para respeitar possíveis chaves estrangeiras.
         $deleteItems = $pdo->prepare(
             'DELETE FROM purchase_items WHERE purchase_id = ?'
@@ -76,6 +81,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
 
         if ($deletePurchase->rowCount() !== 1) {
             throw new RuntimeException('A compra não foi encontrada ou já foi excluída.');
+        }
+
+        if ($paymentId) {
+            payment_recalculate($pdo, $paymentId);
         }
 
         $pdo->commit();
@@ -112,7 +121,19 @@ $stmt = $pdo->prepare("
         pe.name AS person_name,
 
         t.id AS team_id,
-        t.name AS team_name
+        t.name AS team_name,
+
+        pay.method AS payment_method,
+        pay.amount AS payment_amount,
+        pay.fee_percent AS payment_fee_percent,
+        pay.fee_amount AS payment_fee_amount,
+        pay.total AS payment_total,
+
+        (
+            SELECT COUNT(*)
+            FROM purchases other
+            WHERE other.payment_id = p.payment_id
+        ) AS payment_purchases
 
     FROM purchases p
 
@@ -121,6 +142,9 @@ $stmt = $pdo->prepare("
 
     INNER JOIN teams t
         ON t.id = pe.team_id
+
+    LEFT JOIN purchase_payments pay
+        ON pay.id = p.payment_id
 
     WHERE p.id = ?
 
@@ -680,6 +704,80 @@ $items =
         }
 
 
+        .payment-note {
+
+            margin-top: 10px;
+
+            color: #7a857f;
+
+            font-size: 12px;
+
+            text-align: center;
+        }
+
+
+        .payment-details {
+
+            margin-top: 14px;
+
+            padding:
+                4px 14px;
+
+            border-radius: 12px;
+
+            background: #f7f9f7;
+        }
+
+
+        .payment-details > div {
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content:
+                space-between;
+
+            gap: 12px;
+
+            padding:
+                10px 0;
+
+            border-bottom:
+                1px solid #e1e7e3;
+
+            font-size: 13px;
+        }
+
+
+        .payment-details > div:last-child {
+
+            border-bottom: 0;
+        }
+
+
+        .payment-details span {
+
+            color: #7a857f;
+        }
+
+
+        .payment-details strong {
+
+            color: #183b28;
+
+            white-space: nowrap;
+        }
+
+
+        .payment-details-total strong {
+
+            color: #02511F;
+
+            font-size: 18px;
+        }
+
+
         /* =====================================================
            MOBILE
         ===================================================== */
@@ -1088,6 +1186,87 @@ $items =
             <?php endif; ?>
 
 
+            <?php if ($purchase['payment_method']): ?>
+
+                <div class="payment-details">
+
+                    <div>
+                        <span>Forma de pagamento</span>
+                        <strong>
+                            <?= PAYMENT_METHODS[
+                                $purchase['payment_method']
+                            ] ?>
+                        </strong>
+                    </div>
+
+
+                    <?php if ((int) $purchase['payment_purchases'] > 1): ?>
+
+                        <div>
+                            <span>
+                                Pago junto com outras compras
+                                (<?= (int) $purchase['payment_purchases'] ?> no total)
+                            </span>
+                            <strong>
+                                R$
+                                <?= number_format(
+                                    $purchase['payment_amount'],
+                                    2,
+                                    ',',
+                                    '.'
+                                ) ?>
+                            </strong>
+                        </div>
+
+                    <?php endif; ?>
+
+
+                    <div>
+                        <span>
+                            Juros
+                            (<?= rtrim(rtrim(number_format(
+                                $purchase['payment_fee_percent'],
+                                2,
+                                ',',
+                                '.'
+                            ), '0'), ',') ?>%)
+                        </span>
+                        <strong>
+                            R$
+                            <?= number_format(
+                                $purchase['payment_fee_amount'],
+                                2,
+                                ',',
+                                '.'
+                            ) ?>
+                        </strong>
+                    </div>
+
+
+                    <div class="payment-details-total">
+                        <span>Total cobrado</span>
+                        <strong>
+                            R$
+                            <?= number_format(
+                                $purchase['payment_total'],
+                                2,
+                                ',',
+                                '.'
+                            ) ?>
+                        </strong>
+                    </div>
+
+                </div>
+
+            <?php else: ?>
+
+                <div class="payment-note">
+                    Forma de pagamento não informada.
+                </div>
+
+            <?php endif; ?>
+
+
         <?php endif; ?>
 
 
@@ -1098,6 +1277,8 @@ $items =
 
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
+
+<?php require_once __DIR__ . '/includes/payment-modal.php'; ?>
 
 
 <script>
@@ -1128,18 +1309,29 @@ if (paymentButton) {
 
     paymentButton.addEventListener(
         'click',
-        async () => {
+        () => {
 
-            const confirmed =
-                confirm(
-                    'Confirmar o pagamento desta compra?'
-                );
+            openPaymentModal({
+
+                person:
+                    <?= json_encode($purchase['person_name']) ?>,
+
+                description:
+                    'Compra #<?= (int) $purchase['id'] ?>',
+
+                amount:
+                    <?= json_encode((float) $purchase['total']) ?>,
+
+                onConfirm:
+                    registerPayment
+
+            });
+
+        }
+    );
 
 
-            if (!confirmed) {
-                return;
-            }
-
+    async function registerPayment(paymentMethod) {
 
             paymentButton.disabled = true;
 
@@ -1166,7 +1358,10 @@ if (paymentButton) {
                                     <?= json_encode(csrf_token()) ?>,
 
                                 purchase_id:
-                                    <?= (int) $purchase['id'] ?>
+                                    <?= (int) $purchase['id'] ?>,
+
+                                payment_method:
+                                    paymentMethod
 
                             })
                         }
@@ -1205,8 +1400,7 @@ if (paymentButton) {
 
             }
 
-        }
-    );
+    }
 
 }
 

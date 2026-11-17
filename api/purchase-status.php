@@ -17,6 +17,8 @@ if (!isset($_SESSION['admin_id'])) {
 
 require_once __DIR__ . '/../config/database.php';
 
+require_once __DIR__ . '/../config/payments.php';
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
 
@@ -62,49 +64,109 @@ if (!in_array($status, ['paid', 'pending'], true)) {
     exit;
 }
 
+$paymentMethod = $input['payment_method'] ?? null;
+
+if (
+    $status === 'paid' &&
+    !payment_method_valid($paymentMethod)
+) {
+    http_response_code(400);
+
+    echo json_encode([
+        'success' => false,
+        'message' => 'Selecione a forma de pagamento.'
+    ], JSON_UNESCAPED_UNICODE);
+
+    exit;
+}
+
 try {
 
-    $paidAt =
-        $status === 'paid'
-            ? date('Y-m-d H:i:s')
-            : null;
+    $pdo->beginTransaction();
 
-    $stmt = $pdo->prepare("
-        UPDATE purchases
-        SET
-            status = ?,
-            paid_at = ?
+    $check = $pdo->prepare("
+        SELECT
+            status,
+            payment_id
+        FROM purchases
         WHERE id = ?
         LIMIT 1
+        FOR UPDATE
     ");
 
-    $stmt->execute([
-        $status,
-        $paidAt,
+    $check->execute([
         $purchaseId
     ]);
 
-    if ($stmt->rowCount() === 0) {
+    $purchase = $check->fetch();
 
-        $check = $pdo->prepare("
-            SELECT id
-            FROM purchases
+    if (!$purchase) {
+
+        throw new Exception(
+            'Compra não encontrada.'
+        );
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | PAGAR
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        $status === 'paid' &&
+        $purchase['status'] === 'pending'
+    ) {
+
+        payment_pay_purchase(
+            $pdo,
+            $purchaseId,
+            $paymentMethod
+        );
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | VOLTAR PARA PENDENTE
+    |--------------------------------------------------------------------------
+    |
+    | A compra sai do pagamento, que é recalculado.
+    |
+    */
+
+    if (
+        $status === 'pending' &&
+        $purchase['status'] === 'paid'
+    ) {
+
+        $stmt = $pdo->prepare("
+            UPDATE purchases
+            SET
+                status = 'pending',
+                paid_at = NULL,
+                payment_id = NULL
             WHERE id = ?
             LIMIT 1
         ");
 
-        $check->execute([
+        $stmt->execute([
             $purchaseId
         ]);
 
-        if (!$check->fetch()) {
+        if ($purchase['payment_id']) {
 
-            throw new Exception(
-                'Compra não encontrada.'
+            payment_recalculate(
+                $pdo,
+                (int) $purchase['payment_id']
             );
 
         }
+
     }
+
+    $pdo->commit();
 
     echo json_encode([
         'success' => true,
@@ -112,6 +174,10 @@ try {
     ], JSON_UNESCAPED_UNICODE);
 
 } catch (Throwable $e) {
+
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
 
     http_response_code(500);
 

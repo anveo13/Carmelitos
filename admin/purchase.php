@@ -10,6 +10,9 @@ if (!isset($_SESSION['admin_id'])) {
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/security.php';
 require_once __DIR__ . '/../config/stock.php';
+require_once __DIR__ . '/../config/payments.php';
+
+$paymentFeePercents = payment_fee_percents($pdo);
 
 /*
 |--------------------------------------------------------------------------
@@ -324,6 +327,61 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             border-color: #02511F;
             background: #FFF3DF;
             color: #02511F;
+        }
+
+        /* Forma de pagamento — só aparece quando a compra já está paga */
+        .payment-method-section {
+            margin-top: 18px;
+        }
+
+        .payment-method-section[hidden] {
+            display: none;
+        }
+
+        .payment-method-section h3 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #4A4033;
+        }
+
+        .payment-method-section .status-options {
+            flex-wrap: wrap;
+        }
+
+        .payment-method-section .status-option {
+            flex: 1 1 130px;
+        }
+
+        .payment-method-section .status-option label {
+            padding: 12px 8px;
+            font-size: 14px;
+        }
+
+        .payment-method-section .status-option small {
+            display: block;
+            margin-top: 2px;
+            color: #8a948e;
+            font-size: 11px;
+        }
+
+        .confirmation-line {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 8px 0;
+            border-top: 1px solid #e1e7e3;
+            color: #75827a;
+            font-size: 13px;
+        }
+
+        .confirmation-line[hidden] {
+            display: none;
+        }
+
+        .confirmation-line strong {
+            color: #4A4033;
+            white-space: nowrap;
         }
 
         .save-button {
@@ -1027,6 +1085,60 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         </div>
 
+
+        <!-- FORMA DE PAGAMENTO -->
+
+        <div
+            class="payment-method-section"
+            id="paymentMethodSection"
+            hidden
+        >
+
+            <h3>
+                Forma de pagamento
+            </h3>
+
+            <div class="status-options">
+
+                <?php foreach (PAYMENT_METHODS as $method => $label): ?>
+
+                    <div class="status-option">
+
+                        <input
+                            type="radio"
+                            id="paymentMethod_<?= $method ?>"
+                            name="payment_method"
+                            value="<?= $method ?>"
+                            data-label="<?= htmlspecialchars($label) ?>"
+                        >
+
+                        <label for="paymentMethod_<?= $method ?>">
+
+                            <?= htmlspecialchars($label) ?>
+
+                            <?php if ($paymentFeePercents[$method] > 0): ?>
+
+                                <small>
+                                    +<?= rtrim(rtrim(number_format(
+                                        $paymentFeePercents[$method],
+                                        2,
+                                        ',',
+                                        '.'
+                                    ), '0'), ',') ?>% de juros
+                                </small>
+
+                            <?php endif; ?>
+
+                        </label>
+
+                    </div>
+
+                <?php endforeach; ?>
+
+            </div>
+
+        </div>
+
     </section>
 
 
@@ -1081,6 +1193,24 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     id="confirmationTeam"
                     class="confirmation-team"
                 ></div>
+
+                <div
+                    class="confirmation-line"
+                    id="confirmationAmountLine"
+                    hidden
+                >
+                    <span>Valor da compra</span>
+                    <strong id="confirmationAmount"></strong>
+                </div>
+
+                <div
+                    class="confirmation-line"
+                    id="confirmationFeeLine"
+                    hidden
+                >
+                    <span id="confirmationFeeLabel"></span>
+                    <strong id="confirmationFee"></strong>
+                </div>
 
                 <div class="confirmation-total">
 
@@ -1832,11 +1962,62 @@ manualPurchase.addEventListener(
 
 
 
+/*
+|--------------------------------------------------------------------------
+| FORMA DE PAGAMENTO E JUROS
+|--------------------------------------------------------------------------
+*/
+
+const paymentFeePercents =
+    <?= json_encode($paymentFeePercents) ?>;
+
+const paymentMethodSection =
+    document.getElementById('paymentMethodSection');
+
+
+// A forma de pagamento só é pedida quando a compra já está paga.
+document
+    .querySelectorAll('input[name="status"]')
+    .forEach(input => {
+
+        input.addEventListener(
+            'change',
+            () => {
+
+                paymentMethodSection.hidden =
+                    input.value !== 'paid' ||
+                    !input.checked;
+
+            }
+        );
+
+    });
+
+
+// Juros arredondado em centavos, igual ao servidor.
+function calculateFee(
+    amount,
+    method
+) {
+
+    const percent =
+        Number(paymentFeePercents[method] || 0);
+
+    return Math.round(
+        Number(
+            (amount * percent).toFixed(4)
+        )
+    ) / 100;
+
+}
+
+
 function openConfirmation(
     personName,
     teamName,
     total,
-    callback
+    callback,
+    payment = null
 ) {
 
     confirmationPerson.textContent =
@@ -1845,8 +2026,51 @@ function openConfirmation(
     confirmationTeam.textContent =
         teamName;
 
+
+    /*
+    | Compra já paga: mostra forma de pagamento,
+    | juros e o total a cobrar.
+    */
+
+    const fee =
+        payment
+            ? calculateFee(total, payment.method)
+            : 0;
+
+    const percent =
+        payment
+            ? Number(paymentFeePercents[payment.method] || 0)
+            : 0;
+
+
+    document.getElementById('confirmationAmountLine').hidden =
+        !payment;
+
+    document.getElementById('confirmationFeeLine').hidden =
+        !payment;
+
+
+    if (payment) {
+
+        document.getElementById('confirmationAmount').textContent =
+            formatMoney(total);
+
+        document.getElementById('confirmationFeeLabel').textContent =
+            percent > 0
+                ? payment.label + ' · juros de ' +
+                  String(percent).replace('.', ',') + '%'
+                : payment.label;
+
+        document.getElementById('confirmationFee').textContent =
+            percent > 0
+                ? formatMoney(fee)
+                : 'Sem juros';
+
+    }
+
+
     confirmationTotal.textContent =
-        formatMoney(total);
+        formatMoney(total + fee);
 
 
     pendingPurchase =
@@ -2033,6 +2257,46 @@ saveButton.addEventListener(
 
         /*
         |--------------------------------------------------------------------------
+        | FORMA DE PAGAMENTO (somente compra já paga)
+        |--------------------------------------------------------------------------
+        */
+
+        let payment = null;
+
+        if (status === 'paid') {
+
+            const methodInput =
+                document.querySelector(
+                    'input[name="payment_method"]:checked'
+                );
+
+
+            if (!methodInput) {
+
+                alert(
+                    'Selecione a forma de pagamento.'
+                );
+
+                return;
+
+            }
+
+
+            payment = {
+
+                method:
+                    methodInput.value,
+
+                label:
+                    methodInput.dataset.label
+
+            };
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
         | PREPARAR DADOS
         |--------------------------------------------------------------------------
         */
@@ -2128,6 +2392,11 @@ saveButton.addEventListener(
 
                                         status,
 
+                                        payment_method:
+                                            payment
+                                                ? payment.method
+                                                : null,
+
                                         items
 
                                     })
@@ -2170,8 +2439,19 @@ saveButton.addEventListener(
 
                     alert(
                         'Compra registrada com sucesso! ✅\n\n' +
-                        'Total: ' +
-                        formatMoney(data.total)
+                        (
+                            data.payment
+                                ? 'Pago em: ' +
+                                  data.payment.method_label + '\n' +
+                                  'Valor da compra: ' +
+                                  formatMoney(data.payment.amount) + '\n' +
+                                  'Juros: ' +
+                                  formatMoney(data.payment.fee_amount) + '\n' +
+                                  'Total cobrado: ' +
+                                  formatMoney(data.payment.total)
+                                : 'Total: ' +
+                                  formatMoney(data.total)
+                        )
                     );
 
 
@@ -2216,7 +2496,8 @@ saveButton.addEventListener(
 
                 }
 
-            }
+            },
+            payment
         );
 
     }

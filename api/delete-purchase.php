@@ -17,6 +17,8 @@ if (!isset($_SESSION['admin_id'])) {
 
 require_once __DIR__ . '/../config/database.php';
 
+require_once __DIR__ . '/../config/payments.php';
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
 
@@ -78,6 +80,14 @@ try {
     }
 
 
+    // Pagamento da compra, para recalcular depois da exclusão.
+    $paymentId =
+        payment_id_of_purchase(
+            $pdo,
+            $purchaseId
+        );
+
+
     /*
     |--------------------------------------------------------------------------
     | DEVOLVER AO ESTOQUE
@@ -136,6 +146,22 @@ try {
     $stmt->execute([
         $purchaseId
     ]);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | RECALCULAR PAGAMENTO
+    |--------------------------------------------------------------------------
+    */
+
+    if ($paymentId) {
+
+        payment_recalculate(
+            $pdo,
+            $paymentId
+        );
+
+    }
 
 
     /*

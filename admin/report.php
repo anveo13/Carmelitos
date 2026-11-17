@@ -11,6 +11,8 @@ require_once __DIR__ . '/../config/database.php';
 
 require_once __DIR__ . '/../config/stock.php';
 
+require_once __DIR__ . '/../config/payments.php';
+
 
 /*
 |--------------------------------------------------------------------------
@@ -107,6 +109,86 @@ $stmt = $pdo->query("
 ");
 
 $manual =
+    $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+/*
+|--------------------------------------------------------------------------
+| PAGAMENTOS POR FORMA
+|--------------------------------------------------------------------------
+*/
+
+$stmt = $pdo->query("
+    SELECT
+
+        method,
+
+        COUNT(*) AS payments,
+
+        SUM(amount) AS amount,
+
+        SUM(fee_amount) AS fee_amount,
+
+        SUM(total) AS total
+
+    FROM purchase_payments
+
+    GROUP BY method
+");
+
+$paymentsByMethod = [];
+
+foreach ($stmt as $row) {
+
+    $paymentsByMethod[$row['method']] = $row;
+
+}
+
+
+$paymentTotals = [
+    'payments' => 0,
+    'amount' => 0,
+    'fee_amount' => 0,
+    'total' => 0
+];
+
+foreach ($paymentsByMethod as $row) {
+
+    $paymentTotals['payments'] += (int) $row['payments'];
+
+    $paymentTotals['amount'] += (float) $row['amount'];
+
+    $paymentTotals['fee_amount'] += (float) $row['fee_amount'];
+
+    $paymentTotals['total'] += (float) $row['total'];
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| PAGAS SEM FORMA DE PAGAMENTO
+|--------------------------------------------------------------------------
+|
+| Compras pagas antes de existir o registro da
+| forma de pagamento.
+|
+*/
+
+$stmt = $pdo->query("
+    SELECT
+
+        COUNT(*) AS purchases,
+
+        COALESCE(SUM(total), 0) AS total
+
+    FROM purchases
+
+    WHERE status = 'paid'
+      AND payment_id IS NULL
+");
+
+$paidWithoutMethod =
     $stmt->fetch(PDO::FETCH_ASSOC);
 
 
@@ -854,7 +936,17 @@ usort(
             </strong>
 
             <small>
+
                 <?= (int) $summary['paid_count'] ?> compras pagas
+
+                <?php if ($paymentTotals['fee_amount'] > 0): ?>
+
+                    · mais
+                    <?= money($paymentTotals['fee_amount']) ?>
+                    de juros
+
+                <?php endif; ?>
+
             </small>
 
         </div>
@@ -925,6 +1017,160 @@ usort(
 
 
     </section>
+
+
+
+    <!-- =====================================================
+         PAGAMENTOS
+    ====================================================== -->
+
+    <?php if (
+        $paymentsByMethod ||
+        (int) $paidWithoutMethod['purchases'] > 0
+    ): ?>
+
+        <section class="report-section">
+
+            <h2>
+                Pagamentos por forma
+            </h2>
+
+            <p>
+                Quanto entrou em cada forma de pagamento
+                e quanto foi cobrado de juros.
+            </p>
+
+
+            <div class="table-wrapper">
+
+                <table class="report-table">
+
+                    <thead>
+
+                        <tr>
+                            <th>Forma</th>
+                            <th class="number">Pagamentos</th>
+                            <th class="number">Compras</th>
+                            <th class="number">Juros</th>
+                            <th class="number">Total recebido</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        <?php foreach (PAYMENT_METHODS as $method => $label): ?>
+
+                            <?php
+
+                            if (!isset($paymentsByMethod[$method])) {
+                                continue;
+                            }
+
+                            $row = $paymentsByMethod[$method];
+
+                            ?>
+
+                            <tr>
+
+                                <td>
+                                    <?= htmlspecialchars($label) ?>
+                                </td>
+
+                                <td class="number">
+                                    <?= (int) $row['payments'] ?>
+                                </td>
+
+                                <td class="number">
+                                    <?= money((float) $row['amount']) ?>
+                                </td>
+
+                                <td class="number">
+                                    <?= money((float) $row['fee_amount']) ?>
+                                </td>
+
+                                <td class="number">
+                                    <?= money((float) $row['total']) ?>
+                                </td>
+
+                            </tr>
+
+                        <?php endforeach; ?>
+
+
+                        <?php if ((int) $paidWithoutMethod['purchases'] > 0): ?>
+
+                            <tr>
+
+                                <td>
+
+                                    Não informada
+
+                                    <div class="muted">
+                                        <?= (int) $paidWithoutMethod['purchases'] ?>
+                                        compra(s) pagas antes do
+                                        registro da forma de pagamento
+                                    </div>
+
+                                </td>
+
+                                <td class="number">—</td>
+
+                                <td class="number">
+                                    <?= money((float) $paidWithoutMethod['total']) ?>
+                                </td>
+
+                                <td class="number">—</td>
+
+                                <td class="number">
+                                    <?= money((float) $paidWithoutMethod['total']) ?>
+                                </td>
+
+                            </tr>
+
+                        <?php endif; ?>
+
+                    </tbody>
+
+                    <tfoot>
+
+                        <tr>
+
+                            <td>Total</td>
+
+                            <td class="number">
+                                <?= $paymentTotals['payments'] ?>
+                            </td>
+
+                            <td class="number">
+                                <?= money(
+                                    $paymentTotals['amount'] +
+                                    (float) $paidWithoutMethod['total']
+                                ) ?>
+                            </td>
+
+                            <td class="number">
+                                <?= money($paymentTotals['fee_amount']) ?>
+                            </td>
+
+                            <td class="number">
+                                <?= money(
+                                    $paymentTotals['total'] +
+                                    (float) $paidWithoutMethod['total']
+                                ) ?>
+                            </td>
+
+                        </tr>
+
+                    </tfoot>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    <?php endif; ?>
 
 
 

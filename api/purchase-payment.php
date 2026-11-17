@@ -34,6 +34,8 @@ require_once __DIR__ . '/../config/database.php';
 
 require_once __DIR__ . '/../config/security.php';
 
+require_once __DIR__ . '/../config/payments.php';
+
 
 /*
 |--------------------------------------------------------------------------
@@ -129,31 +131,46 @@ if (!$purchaseId) {
 
 /*
 |--------------------------------------------------------------------------
-| ATUALIZAR PAGAMENTO
+| FORMA DE PAGAMENTO
+|--------------------------------------------------------------------------
+*/
+
+$paymentMethod = $input['payment_method'] ?? null;
+
+
+if (!payment_method_valid($paymentMethod)) {
+
+    http_response_code(400);
+
+    echo json_encode([
+        'success' => false,
+        'message' => 'Selecione a forma de pagamento.'
+    ], JSON_UNESCAPED_UNICODE);
+
+    exit;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| REGISTRAR PAGAMENTO
 |--------------------------------------------------------------------------
 */
 
 try {
 
-    $stmt = $pdo->prepare("
-        UPDATE purchases
-
-        SET
-            status = 'paid',
-            paid_at = NOW()
-
-        WHERE id = ?
-          AND status = 'pending'
-
-        LIMIT 1
-    ");
-
-    $stmt->execute([
-        $purchaseId
-    ]);
+    $pdo->beginTransaction();
 
 
-    if ($stmt->rowCount() === 0) {
+    $payment =
+        payment_pay_purchase(
+            $pdo,
+            $purchaseId,
+            $paymentMethod
+        );
+
+
+    if (!$payment) {
 
         throw new Exception(
             'A compra não existe ou já foi paga.'
@@ -162,17 +179,29 @@ try {
     }
 
 
+    $pdo->commit();
+
+
     echo json_encode([
 
         'success' => true,
 
         'message' =>
-            'Pagamento registrado com sucesso.'
+            'Pagamento registrado com sucesso.',
+
+        'payment' =>
+            $payment
 
     ], JSON_UNESCAPED_UNICODE);
 
 
 } catch (Throwable $e) {
+
+    if ($pdo->inTransaction()) {
+
+        $pdo->rollBack();
+
+    }
 
     http_response_code(500);
 

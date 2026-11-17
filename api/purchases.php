@@ -34,6 +34,8 @@ require_once __DIR__ . '/../config/database.php';
 
 require_once __DIR__ . '/../config/security.php';
 
+require_once __DIR__ . '/../config/payments.php';
+
 
 /*
 |--------------------------------------------------------------------------
@@ -118,6 +120,8 @@ $status = $input['status'] ?? 'pending';
 $items = $input['items'] ?? [];
 
 $manualAmount = $input['manual_amount'] ?? null;
+
+$paymentMethod = $input['payment_method'] ?? null;
 
 
 /*
@@ -208,6 +212,28 @@ if (!in_array(
     echo json_encode([
         'success' => false,
         'message' => 'Status inválido.'
+    ], JSON_UNESCAPED_UNICODE);
+
+    exit;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| COMPRA JÁ PAGA PRECISA DA FORMA DE PAGAMENTO
+|--------------------------------------------------------------------------
+*/
+
+if (
+    $status === 'paid' &&
+    !payment_method_valid($paymentMethod)
+) {
+
+    http_response_code(400);
+
+    echo json_encode([
+        'success' => false,
+        'message' => 'Selecione a forma de pagamento.'
     ], JSON_UNESCAPED_UNICODE);
 
     exit;
@@ -415,20 +441,13 @@ try {
 
     /*
     |--------------------------------------------------------------------------
-    | STATUS / DATA DE PAGAMENTO
-    |--------------------------------------------------------------------------
-    */
-
-    $paidAt =
-        $status === 'paid'
-            ? date('Y-m-d H:i:s')
-            : null;
-
-
-    /*
-    |--------------------------------------------------------------------------
     | CRIAR PURCHASE
     |--------------------------------------------------------------------------
+    |
+    | Toda compra nasce pendente. Se já foi paga,
+    | o pagamento é registrado logo abaixo, com a
+    | forma de pagamento e o juros.
+    |
     */
 
     $stmt = $pdo->prepare("
@@ -436,15 +455,13 @@ try {
         (
             person_id,
             total,
-            status,
-            paid_at
+            status
         )
         VALUES
         (
             ?,
             ?,
-            ?,
-            ?
+            'pending'
         )
     ");
 
@@ -458,11 +475,7 @@ try {
             2,
             '.',
             ''
-        ),
-
-        $status,
-
-        $paidAt
+        )
 
     ]);
 
@@ -553,6 +566,26 @@ try {
 
     /*
     |--------------------------------------------------------------------------
+    | PAGAMENTO
+    |--------------------------------------------------------------------------
+    */
+
+    $payment = null;
+
+    if ($status === 'paid') {
+
+        $payment =
+            payment_pay_purchase(
+                $pdo,
+                $purchaseId,
+                $paymentMethod
+            );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
     | CONFIRMAR
     |--------------------------------------------------------------------------
     */
@@ -580,7 +613,10 @@ try {
             $total,
 
         'manual' =>
-            $isManual
+            $isManual,
+
+        'payment' =>
+            $payment
 
     ], JSON_UNESCAPED_UNICODE);
 
