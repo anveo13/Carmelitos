@@ -119,7 +119,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 $currentPage,
                 [
                     'products.php',
-                    'product.php'
+                    'product.php',
+                    'product-buyers.php'
                 ],
                 true
             )

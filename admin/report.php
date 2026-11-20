@@ -709,6 +709,30 @@ usort(
         }
 
 
+        /* Nome do produto: abre quem comprou */
+
+        .buyers-link {
+
+            color: inherit;
+
+            text-decoration: underline;
+
+            text-decoration-color: #c9d3cc;
+
+            text-underline-offset: 3px;
+        }
+
+
+        @media print {
+
+            .buyers-link {
+
+                text-decoration: none;
+            }
+
+        }
+
+
         /* Barra de quantidade vendida */
 
         .bar-cell {
@@ -1219,9 +1243,13 @@ usort(
 
                                 <td>
 
-                                    <?= htmlspecialchars(
+                                    <a
+                                        href="product-buyers.php?id=<?= (int) $product['id'] ?>"
+                                        class="buyers-link"
+                                        title="Ver quem comprou"
+                                    ><?= htmlspecialchars(
                                         $product['name']
-                                    ) ?>
+                                    ) ?></a>
 
                                     <div class="muted">
                                         <?= htmlspecialchars(

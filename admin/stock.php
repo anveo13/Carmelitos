@@ -718,6 +718,14 @@ foreach ($allProducts as $product) {
         }
 
 
+        .stock-buyers-link {
+
+            color: #02511F;
+
+            font-weight: 700;
+        }
+
+
         .stock-quantity strong {
 
             display: block;
@@ -1141,6 +1149,12 @@ foreach ($allProducts as $product) {
                             ? '· Reposto: ' . (int) $product['restocked']
                             : ''
                         ?>
+
+                        ·
+                        <a
+                            href="product-buyers.php?id=<?= (int) $product['id'] ?>"
+                            class="stock-buyers-link"
+                        >Quem comprou</a>
 
                     </span>
 

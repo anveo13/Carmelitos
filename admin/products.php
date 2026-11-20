@@ -1026,6 +1026,13 @@ $counts =
                             ✏️ Editar
                         </a>
 
+                        <a
+                            href="product-buyers.php?id=<?= (int) $product['id'] ?>"
+                            class="product-action"
+                        >
+                            🧾 Quem comprou
+                        </a>
+
                     </div>
 
 
