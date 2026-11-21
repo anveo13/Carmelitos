@@ -366,6 +366,7 @@ try {
             SELECT
                 id,
                 price,
+                cost_price,
                 stock
             FROM products
             WHERE id = ?
@@ -452,6 +453,9 @@ try {
             $unitPrice =
                 (float) $product['price'];
 
+            $unitCost =
+                (float) $product['cost_price'];
+
             $itemCourtesy =
                 $purchaseCourtesy ||
                 filter_var(
@@ -479,6 +483,9 @@ try {
 
                 'unit_price' =>
                     $unitPrice,
+
+                'unit_cost' =>
+                    $unitCost,
 
                 'subtotal' =>
                     $subtotal,
@@ -591,11 +598,13 @@ try {
                 product_id,
                 quantity,
                 unit_price,
+                unit_cost,
                 subtotal,
                 is_courtesy
             )
             VALUES
             (
+                ?,
                 ?,
                 ?,
                 ?,
@@ -635,6 +644,8 @@ try {
                 $item['quantity'],
 
                 $item['unit_price'],
+
+                $item['unit_cost'],
 
                 $item['subtotal']
 

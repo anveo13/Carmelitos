@@ -69,6 +69,8 @@ $product = [
 
     'price' => '',
 
+    'cost_price' => '',
+
     'stock' => 0,
 
     'active' => 1
@@ -90,6 +92,7 @@ if ($productId) {
             name,
             category_id,
             price,
+            cost_price,
             stock,
             active
 
@@ -202,6 +205,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
 
 
+    $costPriceInput =
+        str_replace(
+            ',',
+            '.',
+            trim(
+                $_POST['cost_price'] ?? ''
+            )
+        );
+
+
+    $costPrice =
+        filter_var(
+            $costPriceInput,
+            FILTER_VALIDATE_FLOAT
+        );
+
+
     $stockInput =
         trim(
             $_POST['stock'] ?? ''
@@ -248,6 +268,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $error =
             'Informe um preço válido.';
+
+
+    } elseif (
+        $costPrice === false ||
+        $costPrice < 0
+    ) {
+
+        $error =
+            'Informe um custo de compra vÃ¡lido.';
 
 
     } elseif (
@@ -330,6 +359,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         name = ?,
                         category_id = ?,
                         price = ?,
+                        cost_price = ?,
                         stock = ?,
                         active = ?
 
@@ -347,6 +377,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     number_format(
                         $price,
+                        2,
+                        '.',
+                        ''
+                    ),
+
+                    number_format(
+                        $costPrice,
                         2,
                         '.',
                         ''
@@ -403,12 +440,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         name,
                         category_id,
                         price,
+                        cost_price,
                         stock,
                         active
                     )
 
                     VALUES
                     (
+                        ?,
                         ?,
                         ?,
                         ?,
@@ -426,6 +465,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     number_format(
                         $price,
+                        2,
+                        '.',
+                        ''
+                    ),
+
+                    number_format(
+                        $costPrice,
                         2,
                         '.',
                         ''
@@ -479,6 +525,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $product['price'] =
         $priceInput;
+
+
+    $product['cost_price'] =
+        $costPriceInput;
 
 
     $product['stock'] =
@@ -1260,6 +1310,58 @@ $pageTitle =
                 <div class="field-help">
 
                     Exemplo: 5,00
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 CUSTO DE COMPRA
+            ================================================== -->
+
+            <div class="form-group">
+
+                <label for="cost_price">
+
+                    Custo de compra
+
+                </label>
+
+
+                <div class="price-wrapper">
+
+                    <span class="price-prefix">
+
+                        R$
+
+                    </span>
+
+
+                    <input
+                        type="text"
+                        id="cost_price"
+                        name="cost_price"
+                        class="price-input"
+                        value="<?= htmlspecialchars(
+                            str_replace(
+                                '.',
+                                ',',
+                                (string)
+                                $product['cost_price']
+                            )
+                        ) ?>"
+                        placeholder="0,00"
+                        inputmode="decimal"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="field-help">
+
+                    Quanto foi pago por unidade ao fornecedor.
 
                 </div>
 

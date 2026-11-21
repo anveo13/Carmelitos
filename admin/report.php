@@ -234,6 +234,7 @@ $stmt = $pdo->query("
         p.id,
         p.name,
         p.price,
+        p.cost_price,
         p.stock,
         p.active,
 
@@ -242,6 +243,8 @@ $stmt = $pdo->query("
         COALESCE(s.quantity, 0) AS sold_quantity,
 
         COALESCE(s.revenue, 0) AS sold_revenue,
+
+        COALESCE(s.cost, 0) AS sold_cost,
 
         COALESCE(r.quantity, 0) AS restocked,
 
@@ -267,8 +270,14 @@ $stmt = $pdo->query("
         SELECT
             product_id,
             SUM(quantity) AS quantity,
-            SUM(subtotal) AS revenue
-        FROM purchase_items
+            SUM(subtotal) AS revenue,
+            SUM(
+                pi.quantity *
+                COALESCE(NULLIF(pi.unit_cost, 0), pr.cost_price)
+            ) AS cost
+        FROM purchase_items pi
+        INNER JOIN products pr
+            ON pr.id = pi.product_id
         GROUP BY product_id
     ) s
         ON s.product_id = p.id
@@ -299,6 +308,10 @@ $itemsSold = 0;
 
 $itemsRevenue = 0;
 
+$itemsCost = 0;
+
+$itemsProfit = 0;
+
 $restockedUnits = 0;
 
 $restockCount = 0;
@@ -316,6 +329,9 @@ foreach ($products as $product) {
     $revenue =
         (float) $product['sold_revenue'];
 
+    $cost =
+        (float) $product['sold_cost'];
+
     $stock =
         (int) $product['stock'];
 
@@ -323,6 +339,10 @@ foreach ($products as $product) {
     $itemsSold += $quantity;
 
     $itemsRevenue += $revenue;
+
+    $itemsCost += $cost;
+
+    $itemsProfit += $revenue - $cost;
 
     $restockedUnits += (int) $product['restocked'];
 
@@ -341,7 +361,8 @@ foreach ($products as $product) {
 
             $categories[$categoryName] = [
                 'quantity' => 0,
-                'revenue' => 0
+                'revenue' => 0,
+                'cost' => 0
             ];
 
         }
@@ -351,6 +372,9 @@ foreach ($products as $product) {
 
         $categories[$categoryName]['revenue'] +=
             $revenue;
+
+        $categories[$categoryName]['cost'] +=
+            $cost;
 
     }
 
@@ -376,7 +400,7 @@ foreach ($products as $product) {
         $stockUnits += $stock;
 
         $stockValue +=
-            $stock * (float) $product['price'];
+            $stock * (float) $product['cost_price'];
 
     }
 
@@ -1026,6 +1050,40 @@ usort(
         <div class="summary-card">
 
             <span>
+                Custo dos produtos vendidos
+            </span>
+
+            <strong>
+                <?= money($itemsCost) ?>
+            </strong>
+
+            <small>
+                sem custo nos valores manuais
+            </small>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <span>
+                Lucro bruto dos produtos
+            </span>
+
+            <strong>
+                <?= money($itemsProfit) ?>
+            </strong>
+
+            <small>
+                valor vendido menos custo
+            </small>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <span>
                 Sobrou no estoque
             </span>
 
@@ -1227,6 +1285,8 @@ usort(
                             <th class="bar-cell"></th>
                             <th class="number">Qtd.</th>
                             <th class="number">Valor</th>
+                            <th class="number">Custo</th>
+                            <th class="number">Lucro</th>
                         </tr>
 
                     </thead>
@@ -1281,6 +1341,19 @@ usort(
                                     ) ?>
                                 </td>
 
+                                <td class="number">
+                                    <?= money(
+                                        (float) $product['sold_cost']
+                                    ) ?>
+                                </td>
+
+                                <td class="number">
+                                    <?= money(
+                                        (float) $product['sold_revenue'] -
+                                        (float) $product['sold_cost']
+                                    ) ?>
+                                </td>
+
                             </tr>
 
                         <?php endforeach; ?>
@@ -1298,6 +1371,12 @@ usort(
                             </td>
                             <td class="number">
                                 <?= money($itemsRevenue) ?>
+                            </td>
+                            <td class="number">
+                                <?= money($itemsCost) ?>
+                            </td>
+                            <td class="number">
+                                <?= money($itemsProfit) ?>
                             </td>
                         </tr>
 
@@ -1362,6 +1441,8 @@ usort(
                             <th>Categoria</th>
                             <th class="number">Qtd.</th>
                             <th class="number">Valor</th>
+                            <th class="number">Custo</th>
+                            <th class="number">Lucro</th>
                         </tr>
 
                     </thead>
@@ -1385,6 +1466,19 @@ usort(
                                 <td class="number">
                                     <?= money(
                                         $category['revenue']
+                                    ) ?>
+                                </td>
+
+                                <td class="number">
+                                    <?= money(
+                                        $category['cost']
+                                    ) ?>
+                                </td>
+
+                                <td class="number">
+                                    <?= money(
+                                        $category['revenue'] -
+                                        $category['cost']
                                     ) ?>
                                 </td>
 
@@ -1512,7 +1606,7 @@ usort(
                             <th class="number">Reposto</th>
                             <th class="number">Vendido</th>
                             <th class="number">Sobrou</th>
-                            <th class="number">Valor parado</th>
+                            <th class="number">Valor ao custo</th>
                         </tr>
 
                     </thead>
@@ -1584,7 +1678,7 @@ usort(
                                 <td class="number">
                                     <?= money(
                                         max(0, $stock) *
-                                        (float) $product['price']
+                                        (float) $product['cost_price']
                                     ) ?>
                                 </td>
 
