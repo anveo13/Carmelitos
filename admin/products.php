@@ -63,6 +63,8 @@ $sql = "
         p.active,
         p.created_at,
 
+        COALESCE(sales.sold_quantity, 0) AS sold_quantity,
+
         c.id AS category_id,
         c.name AS category_name
 
@@ -70,6 +72,15 @@ $sql = "
 
     INNER JOIN categories c
         ON c.id = p.category_id
+
+    LEFT JOIN (
+        SELECT
+            product_id,
+            SUM(quantity) AS sold_quantity
+        FROM purchase_items
+        GROUP BY product_id
+    ) sales
+        ON sales.product_id = p.id
 
     WHERE 1 = 1
 ";
@@ -1009,6 +1020,11 @@ $counts =
                         <?= stock_label(
                             (int) $product['stock']
                         ) ?>
+
+                        &bull;
+
+                        <?= (int) $product['sold_quantity'] ?>
+                        vendidos
 
                     </div>
 
