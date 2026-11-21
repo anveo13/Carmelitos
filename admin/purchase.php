@@ -144,6 +144,58 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             border-color: #02511F;
         }
 
+        .adjustments-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+
+        .adjustment-control {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .adjustment-control label {
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .adjustment-control input[type="text"] {
+            width: 100%;
+            height: 52px;
+            box-sizing: border-box;
+            border: 1px solid #d9e0dc;
+            border-radius: 11px;
+            padding: 0 14px;
+            font-size: 15px;
+        }
+
+        .courtesy-toggle {
+            display: flex;
+            align-items: center;
+            min-height: 52px;
+            padding: 0 14px;
+            border: 1px solid #d9e0dc;
+            border-radius: 11px;
+            cursor: pointer;
+        }
+
+        .courtesy-toggle input {
+            margin-right: 9px;
+        }
+
+        .cart-item.courtesy-item {
+            background: #f0f8ef;
+        }
+
+        .item-courtesy-toggle {
+            margin-top: 7px;
+            font-size: 12px;
+            color: #236a31;
+            cursor: pointer;
+        }
+
         .products-search {
             width: 100%;
             height: 52px;
@@ -684,6 +736,10 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         @media (max-width: 700px) {
 
+            .adjustments-grid {
+                grid-template-columns: 1fr;
+            }
+
             .confirmation-box {
                 padding: 20px;
             }
@@ -1020,6 +1076,36 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
 
 
+        <div class="adjustments-grid">
+
+            <div class="adjustment-control">
+                <label for="discountAmount">
+                    Desconto na venda
+                </label>
+
+                <input
+                    type="text"
+                    id="discountAmount"
+                    inputmode="decimal"
+                    autocomplete="off"
+                    placeholder="R$ 0,00"
+                >
+            </div>
+
+            <div class="adjustment-control">
+                <label>
+                    Cortesia na venda
+                </label>
+
+                <label class="courtesy-toggle" for="purchaseCourtesy">
+                    <input type="checkbox" id="purchaseCourtesy">
+                    Tornar todos os itens cortesia
+                </label>
+            </div>
+
+        </div>
+
+
         <div class="purchase-total">
 
             <span>
@@ -1274,6 +1360,12 @@ const cartList =
 const cartTotal =
     document.getElementById('cartTotal');
 
+const discountAmount =
+    document.getElementById('discountAmount');
+
+const purchaseCourtesy =
+    document.getElementById('purchaseCourtesy');
+
 const saveButton =
     document.getElementById('savePurchase');
 
@@ -1449,7 +1541,8 @@ document
                         id,
                         name,
                         price,
-                        quantity: 1
+                        quantity: 1,
+                        courtesy: false
                     });
 
                 }
@@ -1508,24 +1601,19 @@ function renderCart() {
     }
 
 
-    let total = 0;
-
-
     cartList.innerHTML =
         cart.map(
             item => {
 
                 const subtotal =
-                    item.price *
-                    item.quantity;
-
-
-                total += subtotal;
+                    item.courtesy || purchaseCourtesy.checked
+                        ? 0
+                        : item.price * item.quantity;
 
 
                 return `
 
-                    <div class="cart-item">
+                    <div class="cart-item ${item.courtesy || purchaseCourtesy.checked ? 'courtesy-item' : ''}">
 
                         <div class="cart-item-info">
 
@@ -1538,6 +1626,16 @@ function renderCart() {
                                 ${formatNumber(item.price)}
                                 cada
                             </div>
+
+                            <label class="item-courtesy-toggle">
+                                <input
+                                    type="checkbox"
+                                    ${item.courtesy ? 'checked' : ''}
+                                    ${purchaseCourtesy.checked ? 'disabled' : ''}
+                                    onchange="toggleItemCourtesy(${item.id}, this.checked)"
+                                >
+                                Cortesia deste item
+                            </label>
 
                         </div>
 
@@ -1586,8 +1684,7 @@ function renderCart() {
         ).join('');
 
 
-    cartTotal.textContent =
-        formatMoney(total);
+    cartTotal.textContent = formatMoney(purchaseCalculation().total);
 
 
     // Mantém o produto visualmente selecionado enquanto ele estiver no carrinho.
@@ -1611,6 +1708,64 @@ function renderCart() {
         });
 
 }
+
+
+function parseMoney(value) {
+
+    const normalized = String(value || '')
+        .replace(/R\$/g, '')
+        .replace(/\s/g, '')
+        .replace(/\./g, '')
+        .replace(',', '.');
+
+    const amount = Number(normalized);
+
+    return Number.isFinite(amount) && amount > 0
+        ? Math.round(amount * 100) / 100
+        : 0;
+
+}
+
+
+function purchaseCalculation() {
+
+    const subtotal = cart.reduce(
+        (sum, item) => sum + (
+            item.courtesy || purchaseCourtesy.checked
+                ? 0
+                : item.price * item.quantity
+        ),
+        0
+    );
+
+    const discount = Math.min(
+        parseMoney(discountAmount.value),
+        subtotal
+    );
+
+    return {
+        subtotal: Math.round(subtotal * 100) / 100,
+        discount,
+        total: Math.round((subtotal - discount) * 100) / 100
+    };
+
+}
+
+
+function toggleItemCourtesy(productId, checked) {
+
+    const item = cart.find(item => item.id === productId);
+
+    if (item) {
+        item.courtesy = checked;
+        renderCart();
+    }
+
+}
+
+
+discountAmount.addEventListener('input', renderCart);
+purchaseCourtesy.addEventListener('change', renderCart);
 
 
 /*
@@ -2263,7 +2418,9 @@ saveButton.addEventListener(
 
         let payment = null;
 
-        if (status === 'paid') {
+        const calculation = purchaseCalculation();
+
+        if (status === 'paid' && calculation.total > 0) {
 
             const methodInput =
                 document.querySelector(
@@ -2308,7 +2465,10 @@ saveButton.addEventListener(
                     item.id,
 
                 quantity:
-                    item.quantity
+                    item.quantity,
+
+                courtesy:
+                    purchaseCourtesy.checked || item.courtesy
 
             }));
 
@@ -2331,19 +2491,7 @@ saveButton.addEventListener(
                 .trim();
 
 
-        const total =
-            cart.reduce(
-                (
-                    sum,
-                    item
-                ) =>
-                    sum +
-                    (
-                        item.price *
-                        item.quantity
-                    ),
-                0
-            );
+        const total = calculation.total;
 
 
         /*
@@ -2397,7 +2545,13 @@ saveButton.addEventListener(
                                                 ? payment.method
                                                 : null,
 
-                                        items
+                                        items,
+
+                                        discount_amount:
+                                            calculation.discount,
+
+                                        courtesy:
+                                            purchaseCourtesy.checked
 
                                     })
 

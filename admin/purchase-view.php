@@ -113,6 +113,8 @@ $stmt = $pdo->prepare("
     SELECT
         p.id,
         p.total,
+        p.discount_amount,
+        p.is_courtesy,
         p.status,
         p.created_at,
         p.paid_at,
@@ -180,6 +182,7 @@ $stmt = $pdo->prepare("
         pi.quantity,
         pi.unit_price,
         pi.subtotal,
+        pi.is_courtesy,
 
         pr.name AS product_name,
 
@@ -1051,6 +1054,10 @@ $items =
 
                         </div>
 
+                        <?php if ($item['is_courtesy']): ?>
+                            <div class="item-category">Cortesia</div>
+                        <?php endif; ?>
+
                     </div>
 
 
@@ -1076,6 +1083,10 @@ $items =
 
                 <div class="item-price">
 
+                    <?php if ($item['is_courtesy']): ?>
+                        Cortesia
+                    <?php else: ?>
+
                     R$
                     <?= number_format(
                         $item['subtotal'],
@@ -1083,6 +1094,8 @@ $items =
                         ',',
                         '.'
                     ) ?>
+
+                    <?php endif; ?>
 
                 </div>
 
@@ -1098,11 +1111,22 @@ $items =
              TOTAL
         ================================================== -->
 
+        <?php if ((float) $purchase['discount_amount'] > 0): ?>
+            <div class="purchase-item">
+                <div class="item-left">
+                    <div class="item-name">Desconto na venda</div>
+                </div>
+                <div class="item-price">
+                    − R$ <?= number_format($purchase['discount_amount'], 2, ',', '.') ?>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <div class="purchase-total-box">
 
 
             <div class="total-label">
-                Total da compra
+                <?= $purchase['is_courtesy'] ? 'Cortesia' : 'Total da compra' ?>
             </div>
 
 

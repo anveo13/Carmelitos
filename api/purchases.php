@@ -123,6 +123,32 @@ $manualAmount = $input['manual_amount'] ?? null;
 
 $paymentMethod = $input['payment_method'] ?? null;
 
+$discountAmount = $input['discount_amount'] ?? 0;
+
+$purchaseCourtesy =
+    filter_var(
+        $input['courtesy'] ?? false,
+        FILTER_VALIDATE_BOOLEAN
+    );
+
+if (
+    !is_numeric($discountAmount) ||
+    (float) $discountAmount < 0
+) {
+
+    http_response_code(400);
+
+    echo json_encode([
+        'success' => false,
+        'message' => 'Desconto inválido.'
+    ], JSON_UNESCAPED_UNICODE);
+
+    exit;
+
+}
+
+$discountAmount = round((float) $discountAmount, 2);
+
 
 /*
 |--------------------------------------------------------------------------
@@ -225,7 +251,7 @@ if (!in_array(
 */
 
 if (
-    $status === 'paid' &&
+    $isManual &&
     !payment_method_valid($paymentMethod)
 ) {
 
@@ -410,9 +436,18 @@ try {
             $unitPrice =
                 (float) $product['price'];
 
+            $itemCourtesy =
+                $purchaseCourtesy ||
+                filter_var(
+                    $item['courtesy'] ?? false,
+                    FILTER_VALIDATE_BOOLEAN
+                );
+
 
             $subtotal =
-                $unitPrice * $quantity;
+                $itemCourtesy
+                    ? 0
+                    : $unitPrice * $quantity;
 
 
             $total += $subtotal;
@@ -430,12 +465,36 @@ try {
                     $unitPrice,
 
                 'subtotal' =>
-                    $subtotal
+                    $subtotal,
+
+                'courtesy' =>
+                    $itemCourtesy
 
             ];
 
         }
 
+    }
+
+
+    $discountApplied = min(
+        $discountAmount,
+        $total
+    );
+
+    $total = round(
+        $total - $discountApplied,
+        2
+    );
+
+    $autoPaid = $total === 0.0;
+
+    if (
+        $status === 'paid' &&
+        !$autoPaid &&
+        !payment_method_valid($paymentMethod)
+    ) {
+        throw new Exception('Selecione a forma de pagamento.');
     }
 
 
@@ -455,13 +514,19 @@ try {
         (
             person_id,
             total,
-            status
+            status,
+            paid_at,
+            discount_amount,
+            is_courtesy
         )
         VALUES
         (
             ?,
             ?,
-            'pending'
+            ?,
+            ?,
+            ?,
+            ?
         )
     ");
 
@@ -475,7 +540,15 @@ try {
             2,
             '.',
             ''
-        )
+        ),
+
+        $autoPaid ? 'paid' : 'pending',
+
+        $autoPaid ? date('Y-m-d H:i:s') : null,
+
+        number_format($discountApplied, 2, '.', ''),
+
+        $purchaseCourtesy ? 1 : 0
 
     ]);
 
@@ -502,10 +575,12 @@ try {
                 product_id,
                 quantity,
                 unit_price,
-                subtotal
+                subtotal,
+                is_courtesy
             )
             VALUES
             (
+                ?,
                 ?,
                 ?,
                 ?,
@@ -548,6 +623,10 @@ try {
 
                 $item['subtotal']
 
+                ,
+
+                $item['courtesy'] ? 1 : 0
+
             ]);
 
 
@@ -572,7 +651,7 @@ try {
 
     $payment = null;
 
-    if ($status === 'paid') {
+    if ($status === 'paid' && !$autoPaid) {
 
         $payment =
             payment_pay_purchase(
@@ -611,6 +690,12 @@ try {
 
         'total' =>
             $total,
+
+        'discount_amount' =>
+            $discountApplied,
+
+        'courtesy' =>
+            $purchaseCourtesy,
 
         'manual' =>
             $isManual,
