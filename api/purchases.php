@@ -365,12 +365,16 @@ try {
         $productStmt = $pdo->prepare("
             SELECT
                 id,
-                price
+                price,
+                stock
             FROM products
             WHERE id = ?
               AND active = 1
             LIMIT 1
+            FOR UPDATE
         ");
+
+        $requestedQuantities = [];
 
 
         foreach ($items as $item) {
@@ -403,6 +407,10 @@ try {
 
             }
 
+            $requestedQuantities[$productId] =
+                ($requestedQuantities[$productId] ?? 0) +
+                $quantity;
+
 
             /*
             |--------------------------------------------------------------------------
@@ -428,6 +436,14 @@ try {
 
                 throw new Exception(
                     'Produto não encontrado.'
+                );
+
+            }
+
+            if ($requestedQuantities[$productId] > (int) $product['stock']) {
+
+                throw new Exception(
+                    'Estoque insuficiente para este produto.'
                 );
 
             }
@@ -595,9 +611,8 @@ try {
         | BAIXA NO ESTOQUE
         |--------------------------------------------------------------------------
         |
-        | A venda nunca é bloqueada por falta de estoque.
-        | Se vender mais do que o cadastrado, o estoque
-        | fica negativo.
+        | A venda é bloqueada se a quantidade solicitada
+        | não estiver disponível em estoque.
         |
         */
 

@@ -53,6 +53,7 @@ $stmt = $pdo->query("
 
     ORDER BY
         c.name,
+        CASE WHEN p.stock <= 0 THEN 1 ELSE 0 END,
         p.name
 ");
 
@@ -241,6 +242,19 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .product-button:hover {
             border-color: #02511F;
             background: #FFF3DF;
+        }
+
+        .product-button.unavailable,
+        .product-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.52;
+            background: #f3f4f3;
+        }
+
+        .product-button.unavailable:hover,
+        .product-button:disabled:hover {
+            border-color: #e1e7e3;
+            background: #f3f4f3;
         }
 
         /* Produto selecionado — apenas visual */
@@ -953,10 +967,12 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                             <button
                                 type="button"
-                                class="product-button"
+                                class="product-button <?= (int) $product['stock'] <= 0 ? 'unavailable' : '' ?>"
                                 data-id="<?= $product['id'] ?>"
                                 data-name="<?= htmlspecialchars($product['name']) ?>"
                                 data-price="<?= $product['price'] ?>"
+                                data-stock="<?= (int) $product['stock'] ?>"
+                                <?= (int) $product['stock'] <= 0 ? 'disabled' : '' ?>
                             >
 
                                 <span class="product-name">
@@ -974,7 +990,10 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 </span>
 
                                 <span class="product-stock <?= stock_level((int) $product['stock']) ?>">
-                                    <?= stock_label((int) $product['stock']) ?>
+                                    <?= (int) $product['stock'] <= 0
+                                        ? 'Inativo — esgotado'
+                                        : stock_label((int) $product['stock'])
+                                    ?>
                                 </span>
 
                             </button>
@@ -1523,6 +1542,13 @@ document
                 const price =
                     Number(button.dataset.price);
 
+                const stock =
+                    Number(button.dataset.stock);
+
+                if (stock <= 0) {
+                    return;
+                }
+
 
                 const existing =
                     cart.find(
@@ -1533,6 +1559,11 @@ document
 
                 if (existing) {
 
+                    if (existing.quantity >= existing.stock) {
+                        alert('Não há mais unidades disponíveis deste produto.');
+                        return;
+                    }
+
                     existing.quantity++;
 
                 } else {
@@ -1541,6 +1572,7 @@ document
                         id,
                         name,
                         price,
+                        stock,
                         quantity: 1,
                         courtesy: false
                     });
@@ -1787,6 +1819,12 @@ function changeQuantity(
 
 
     if (!item) {
+        return;
+    }
+
+
+    if (amount > 0 && item.quantity >= item.stock) {
+        alert('Não há mais unidades disponíveis deste produto.');
         return;
     }
 
