@@ -105,6 +105,137 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
 
 /*
 |--------------------------------------------------------------------------
+| ATUALIZAR DESCONTO E CORTESIAS
+|--------------------------------------------------------------------------
+*/
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update_adjustments') {
+    $submittedToken = $_POST['csrf_token'] ?? '';
+    $sessionToken = csrf_token();
+
+    if (!is_string($submittedToken) || !hash_equals($sessionToken, $submittedToken)) {
+        http_response_code(403);
+        exit('Token de seguranÃ§a invÃ¡lido. Atualize a pÃ¡gina e tente novamente.');
+    }
+
+    $discountRaw = trim((string) ($_POST['discount_amount'] ?? '0'));
+    $discountNormalized = str_contains($discountRaw, ',')
+        ? str_replace(',', '.', str_replace('.', '', $discountRaw))
+        : $discountRaw;
+
+    if (!is_numeric($discountNormalized) || (float) $discountNormalized < 0) {
+        header('Location: purchase-view.php?id=' . $purchaseId . '&adjustment_error=1');
+        exit;
+    }
+
+    $requestedDiscount = round((float) $discountNormalized, 2);
+    $purchaseCourtesy = isset($_POST['purchase_courtesy']);
+    $itemCourtesyIds = array_map('intval', array_keys($_POST['item_courtesy'] ?? []));
+
+    try {
+        $pdo->beginTransaction();
+
+        $stmt = $pdo->prepare('
+            SELECT status, payment_id, total, discount_amount, paid_at
+            FROM purchases
+            WHERE id = ?
+            LIMIT 1
+            FOR UPDATE
+        ');
+        $stmt->execute([$purchaseId]);
+        $currentPurchase = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$currentPurchase) {
+            throw new RuntimeException('Compra nÃ£o encontrada.');
+        }
+
+        $stmt = $pdo->prepare('
+            SELECT id, quantity, unit_price
+            FROM purchase_items
+            WHERE purchase_id = ?
+            FOR UPDATE
+        ');
+        $stmt->execute([$purchaseId]);
+        $adjustmentItems = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $grossTotal = 0;
+        $updateItem = $pdo->prepare('
+            UPDATE purchase_items
+            SET is_courtesy = ?, subtotal = ?
+            WHERE id = ?
+            LIMIT 1
+        ');
+
+        foreach ($adjustmentItems as $item) {
+            $isCourtesy = $purchaseCourtesy || in_array((int) $item['id'], $itemCourtesyIds, true);
+            $subtotal = $isCourtesy
+                ? 0.0
+                : round((float) $item['unit_price'] * (int) $item['quantity'], 2);
+
+            $grossTotal += $subtotal;
+            $updateItem->execute([
+                $isCourtesy ? 1 : 0,
+                number_format($subtotal, 2, '.', ''),
+                $item['id']
+            ]);
+        }
+
+        // Compras manuais nÃ£o possuem itens: recupera o valor original.
+        if (count($adjustmentItems) === 0 && !$purchaseCourtesy) {
+            $grossTotal = (float) $currentPurchase['total'] + (float) $currentPurchase['discount_amount'];
+        }
+
+        $discountApplied = min($requestedDiscount, $grossTotal);
+        $total = $purchaseCourtesy ? 0.0 : round($grossTotal - $discountApplied, 2);
+        $status = $currentPurchase['status'];
+        $paidAt = $currentPurchase['paid_at'];
+
+        if ($total === 0.0) {
+            $status = 'paid';
+            $paidAt = date('Y-m-d H:i:s');
+        } elseif ($status === 'paid' && !$currentPurchase['payment_id']) {
+            // Uma compra que era cortesia volta a aguardar pagamento ao voltar a ter valor.
+            $status = 'pending';
+            $paidAt = null;
+        }
+
+        $stmt = $pdo->prepare('
+            UPDATE purchases
+            SET total = ?, discount_amount = ?, is_courtesy = ?, status = ?,
+                paid_at = ?
+            WHERE id = ?
+            LIMIT 1
+        ');
+        $stmt->execute([
+            number_format($total, 2, '.', ''),
+            number_format($discountApplied, 2, '.', ''),
+            $purchaseCourtesy ? 1 : 0,
+            $status,
+            $paidAt,
+            $purchaseId
+        ]);
+
+        if ($currentPurchase['payment_id']) {
+            payment_recalculate($pdo, (int) $currentPurchase['payment_id']);
+        }
+
+        $pdo->commit();
+        header('Location: purchase-view.php?id=' . $purchaseId . '&adjusted=1');
+        exit;
+    } catch (Throwable $error) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        error_log('Erro ao atualizar ajustes da compra #' . $purchaseId . ': ' . $error->getMessage());
+        http_response_code(500);
+        exit('NÃ£o foi possÃ­vel atualizar desconto ou cortesia. Nenhuma alteraÃ§Ã£o foi mantida.');
+    }
+}
+
+
+/*
+|--------------------------------------------------------------------------
 | BUSCAR COMPRA
 |--------------------------------------------------------------------------
 */
@@ -462,6 +593,47 @@ $items =
             box-shadow:
                 0 3px 12px
                 rgba(16, 54, 30, 0.04);
+        }
+
+        .adjustments-form {
+            display: grid;
+            gap: 14px;
+        }
+
+        .adjustments-form label {
+            font-size: 14px;
+            font-weight: 700;
+            color: #183b28;
+        }
+
+        .adjustments-form input[type="text"] {
+            width: 100%;
+            max-width: 220px;
+            box-sizing: border-box;
+            padding: 11px 12px;
+            border: 1px solid #d9e0dc;
+            border-radius: 9px;
+            font-size: 15px;
+        }
+
+        .adjustment-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 10px 0;
+            border-top: 1px solid #e8eeea;
+            font-size: 14px;
+        }
+
+        .adjustment-save {
+            justify-self: start;
+            padding: 12px 18px;
+            border: 0;
+            border-radius: 9px;
+            background: #02511F;
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
         }
 
 
@@ -1008,6 +1180,79 @@ $items =
     </section>
 
 
+    <!-- =====================================================
+         AJUSTES DA COMPRA
+    ====================================================== -->
+
+    <section class="items-card">
+
+        <h2 class="items-title">
+            Ajustes da compra
+        </h2>
+
+        <?php if (isset($_GET['adjusted'])): ?>
+            <p class="payment-info">Desconto e cortesia atualizados com sucesso.</p>
+        <?php elseif (isset($_GET['adjustment_error'])): ?>
+            <p class="payment-info">Informe um desconto válido.</p>
+        <?php endif; ?>
+
+        <form
+            method="POST"
+            action="purchase-view.php?id=<?= (int) $purchase['id'] ?>"
+            class="adjustments-form"
+        >
+            <input type="hidden" name="action" value="update_adjustments">
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>"
+            >
+
+            <label for="discountAmount">Desconto na venda (R$)</label>
+            <input
+                type="text"
+                id="discountAmount"
+                name="discount_amount"
+                inputmode="decimal"
+                value="<?= number_format((float) $purchase['discount_amount'], 2, ',', '.') ?>"
+            >
+
+            <label>
+                <input
+                    type="checkbox"
+                    id="purchaseCourtesy"
+                    name="purchase_courtesy"
+                    <?= $purchase['is_courtesy'] ? 'checked' : '' ?>
+                >
+                Cortesia da compra inteira
+            </label>
+
+            <?php if (count($items) > 0): ?>
+                <div>
+                    <strong>Cortesia por item</strong>
+
+                    <?php foreach ($items as $item): ?>
+                        <label class="adjustment-item">
+                            <input
+                                type="checkbox"
+                                name="item_courtesy[<?= (int) $item['id'] ?>]"
+                                value="1"
+                                <?= $item['is_courtesy'] ? 'checked' : '' ?>
+                            >
+                            <?= htmlspecialchars($item['product_name']) ?>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
+            <button type="submit" class="adjustment-save">
+                Salvar ajustes
+            </button>
+        </form>
+
+    </section>
+
+
 
     <!-- =====================================================
          PRODUTOS
@@ -1321,6 +1566,23 @@ if (deletePurchaseForm) {
             event.preventDefault();
         }
     });
+}
+
+const purchaseCourtesyInput = document.getElementById('purchaseCourtesy');
+
+if (purchaseCourtesyInput) {
+    const itemCourtesyInputs = document.querySelectorAll(
+        'input[name^="item_courtesy"]'
+    );
+
+    const syncCourtesyItems = () => {
+        itemCourtesyInputs.forEach(input => {
+            input.disabled = purchaseCourtesyInput.checked;
+        });
+    };
+
+    purchaseCourtesyInput.addEventListener('change', syncCourtesyItems);
+    syncCourtesyItems();
 }
 
 const paymentButton =
