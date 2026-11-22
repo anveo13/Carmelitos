@@ -129,6 +129,8 @@ $stmt = $pdo->query("
 
         SUM(fee_amount) AS fee_amount,
 
+        SUM(tip_amount) AS tip_amount,
+
         SUM(total) AS total
 
     FROM purchase_payments
@@ -149,6 +151,7 @@ $paymentTotals = [
     'payments' => 0,
     'amount' => 0,
     'fee_amount' => 0,
+    'tip_amount' => 0,
     'total' => 0
 ];
 
@@ -159,6 +162,8 @@ foreach ($paymentsByMethod as $row) {
     $paymentTotals['amount'] += (float) $row['amount'];
 
     $paymentTotals['fee_amount'] += (float) $row['fee_amount'];
+
+    $paymentTotals['tip_amount'] += (float) $row['tip_amount'];
 
     $paymentTotals['total'] += (float) $row['total'];
 
@@ -995,6 +1000,14 @@ usort(
 
                 <?php endif; ?>
 
+                <?php if ($paymentTotals['tip_amount'] > 0): ?>
+
+                    ·
+                    <?= money($paymentTotals['tip_amount']) ?>
+                    de gorjetas
+
+                <?php endif; ?>
+
             </small>
 
         </div>
@@ -1134,6 +1147,7 @@ usort(
                             <th class="number">Pagamentos</th>
                             <th class="number">Compras</th>
                             <th class="number">Juros</th>
+                            <th class="number">Gorjetas</th>
                             <th class="number">Total recebido</th>
                         </tr>
 
@@ -1172,6 +1186,10 @@ usort(
                                 </td>
 
                                 <td class="number">
+                                    <?= money((float) $row['tip_amount']) ?>
+                                </td>
+
+                                <td class="number">
                                     <?= money((float) $row['total']) ?>
                                 </td>
 
@@ -1204,6 +1222,8 @@ usort(
 
                                 <td class="number">—</td>
 
+                                <td class="number">—</td>
+
                                 <td class="number">
                                     <?= money((float) $paidWithoutMethod['total']) ?>
                                 </td>
@@ -1233,6 +1253,10 @@ usort(
 
                             <td class="number">
                                 <?= money($paymentTotals['fee_amount']) ?>
+                            </td>
+
+                            <td class="number">
+                                <?= money($paymentTotals['tip_amount']) ?>
                             </td>
 
                             <td class="number">

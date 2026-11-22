@@ -154,7 +154,8 @@ function payment_fee_amount(
 function payment_pay_purchase(
     PDO $pdo,
     int $purchaseId,
-    string $method
+    string $method,
+    ?float $receivedTotal = null
 ): ?array {
 
     $stmt = $pdo->prepare("
@@ -176,7 +177,8 @@ function payment_pay_purchase(
     return payment_create(
         $pdo,
         $method,
-        $stmt->fetchAll(PDO::FETCH_ASSOC)
+        $stmt->fetchAll(PDO::FETCH_ASSOC),
+        $receivedTotal
     );
 }
 
@@ -199,7 +201,8 @@ function payment_pay_purchase(
 function payment_pay_person(
     PDO $pdo,
     int $personId,
-    string $method
+    string $method,
+    ?float $receivedTotal = null
 ): ?array {
 
     $stmt = $pdo->prepare("
@@ -221,7 +224,8 @@ function payment_pay_person(
     return payment_create(
         $pdo,
         $method,
-        $stmt->fetchAll(PDO::FETCH_ASSOC)
+        $stmt->fetchAll(PDO::FETCH_ASSOC),
+        $receivedTotal
     );
 }
 
@@ -239,7 +243,8 @@ function payment_pay_person(
 function payment_create(
     PDO $pdo,
     string $method,
-    array $purchases
+    array $purchases,
+    ?float $receivedTotal = null
 ): ?array {
 
     if (!payment_method_valid($method)) {
@@ -276,11 +281,32 @@ function payment_create(
             $percent
         );
 
-    $total =
+    $requiredTotal =
         round(
             $amount + $feeAmount,
             2
         );
+
+    if ($receivedTotal !== null) {
+
+        $receivedTotal = round($receivedTotal, 2);
+
+        if ($receivedTotal < $requiredTotal) {
+            throw new InvalidArgumentException(
+                'O valor recebido não pode ser menor que o total calculado.'
+            );
+        }
+
+    } else {
+
+        $receivedTotal = $requiredTotal;
+
+    }
+
+    $tipAmount = round(
+        $receivedTotal - $requiredTotal,
+        2
+    );
 
 
     $stmt = $pdo->prepare("
@@ -291,10 +317,12 @@ function payment_create(
             amount,
             fee_percent,
             fee_amount,
+            tip_amount,
             total
         )
         VALUES
         (
+            ?,
             ?,
             ?,
             ?,
@@ -316,7 +344,9 @@ function payment_create(
 
         number_format($feeAmount, 2, '.', ''),
 
-        number_format($total, 2, '.', '')
+        number_format($tipAmount, 2, '.', ''),
+
+        number_format($receivedTotal, 2, '.', '')
 
     ]);
 
@@ -361,7 +391,9 @@ function payment_create(
 
         'fee_amount' => $feeAmount,
 
-        'total' => $total
+        'tip_amount' => $tipAmount,
+
+        'total' => $receivedTotal
 
     ];
 }
@@ -419,7 +451,7 @@ function payment_recalculate(
 
 
     $stmt = $pdo->prepare("
-        SELECT fee_percent
+        SELECT fee_percent, tip_amount
         FROM purchase_payments
         WHERE id = ?
         LIMIT 1
@@ -429,11 +461,11 @@ function payment_recalculate(
         $paymentId
     ]);
 
-    $percent =
-        $stmt->fetchColumn();
+    $payment =
+        $stmt->fetch(PDO::FETCH_ASSOC);
 
 
-    if ($percent === false) {
+    if (!$payment) {
         return;
     }
 
@@ -447,7 +479,7 @@ function payment_recalculate(
     $feeAmount =
         payment_fee_amount(
             $amount,
-            (float) $percent
+            (float) $payment['fee_percent']
         );
 
 
@@ -467,7 +499,14 @@ function payment_recalculate(
 
         number_format($feeAmount, 2, '.', ''),
 
-        number_format($amount + $feeAmount, 2, '.', ''),
+        number_format(
+            $amount +
+            $feeAmount +
+            (float) $payment['tip_amount'],
+            2,
+            '.',
+            ''
+        ),
 
         $paymentId
 

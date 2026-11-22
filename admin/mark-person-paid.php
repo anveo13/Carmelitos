@@ -38,6 +38,26 @@ $returnUrl = $_POST['return_url'] ?? 'purchases.php';
 
 $paymentMethod = $_POST['payment_method'] ?? null;
 
+$receivedTotal = $_POST['received_total'] ?? null;
+
+if ($receivedTotal !== null && $receivedTotal !== '') {
+
+    $receivedTotal = str_contains($receivedTotal, ',')
+        ? str_replace(',', '.', str_replace('.', '', $receivedTotal))
+        : $receivedTotal;
+
+    if (!is_numeric($receivedTotal) || (float) $receivedTotal < 0) {
+        exit('Informe um valor recebido válido.');
+    }
+
+    $receivedTotal = round((float) $receivedTotal, 2);
+
+} else {
+
+    $receivedTotal = null;
+
+}
+
 
 if (!payment_method_valid($paymentMethod)) {
 
@@ -54,7 +74,8 @@ try {
     payment_pay_person(
         $pdo,
         $personId,
-        $paymentMethod
+        $paymentMethod,
+        $receivedTotal
     );
 
 

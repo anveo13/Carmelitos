@@ -137,6 +137,27 @@ if (!$purchaseId) {
 
 $paymentMethod = $input['payment_method'] ?? null;
 
+$receivedTotal = $input['received_total'] ?? null;
+
+if ($receivedTotal !== null) {
+
+    if (!is_numeric($receivedTotal) || (float) $receivedTotal < 0) {
+
+        http_response_code(400);
+
+        echo json_encode([
+            'success' => false,
+            'message' => 'Valor recebido inválido.'
+        ], JSON_UNESCAPED_UNICODE);
+
+        exit;
+
+    }
+
+    $receivedTotal = round((float) $receivedTotal, 2);
+
+}
+
 
 if (!payment_method_valid($paymentMethod)) {
 
@@ -166,7 +187,8 @@ try {
         payment_pay_purchase(
             $pdo,
             $purchaseId,
-            $paymentMethod
+            $paymentMethod,
+            $receivedTotal
         );
 
 

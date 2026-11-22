@@ -57,6 +57,59 @@ if (
     }
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | VALOR RECEBIDO
+    |--------------------------------------------------------------------------
+    |
+    | O que passar do total calculado (compras + juros)
+    | é registrado como gorjeta. Vazio = sem gorjeta.
+    |
+    */
+
+    $receivedTotal =
+        trim(
+            (string) ($_POST['received_total'] ?? '')
+        );
+
+
+    if ($receivedTotal === '') {
+
+        $receivedTotal = null;
+
+    } else {
+
+        // Aceita "93,58", "1.093,58" e "93.58".
+        if (str_contains($receivedTotal, ',')) {
+
+            $receivedTotal =
+                str_replace(
+                    ',',
+                    '.',
+                    str_replace('.', '', $receivedTotal)
+                );
+
+        }
+
+
+        if (
+            !is_numeric($receivedTotal) ||
+            (float) $receivedTotal < 0
+        ) {
+
+            http_response_code(400);
+
+            exit('Informe um valor recebido válido.');
+
+        }
+
+
+        $receivedTotal =
+            round((float) $receivedTotal, 2);
+
+    }
+
+
     if ($personId > 0) {
 
         try {
@@ -66,10 +119,24 @@ if (
             payment_pay_person(
                 $pdo,
                 $personId,
-                $paymentMethod
+                $paymentMethod,
+                $receivedTotal
             );
 
             $pdo->commit();
+
+        } catch (InvalidArgumentException $error) {
+
+            // Valor recebido menor que o total calculado.
+            if ($pdo->inTransaction()) {
+
+                $pdo->rollBack();
+
+            }
+
+            http_response_code(400);
+
+            exit($error->getMessage() . ' Nada foi alterado.');
 
         } catch (Throwable $error) {
 
@@ -2157,9 +2224,22 @@ document
                     amount:
                         Number(form.dataset.pendingValue),
 
-                    onConfirm: method => {
+                    onConfirm: (method, receivedTotal) => {
 
                         methodInput.value = method;
+
+                        let receivedInput = form.querySelector(
+                            'input[name="received_total"]'
+                        );
+
+                        if (!receivedInput) {
+                            receivedInput = document.createElement('input');
+                            receivedInput.type = 'hidden';
+                            receivedInput.name = 'received_total';
+                            form.appendChild(receivedInput);
+                        }
+
+                        receivedInput.value = receivedTotal;
 
                         form.submit();
 

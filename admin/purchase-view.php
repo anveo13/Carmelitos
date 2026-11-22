@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
 
     if (!is_string($submittedToken) || !hash_equals($sessionToken, $submittedToken)) {
         http_response_code(403);
-        exit('Token de seguranÃ§a invÃ¡lido. Atualize a pÃ¡gina e tente novamente.');
+        exit('Token de segurança inválido. Atualize a página e tente novamente.');
     }
 
     $discountRaw = trim((string) ($_POST['discount_amount'] ?? '0'));
@@ -146,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
         $currentPurchase = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$currentPurchase) {
-            throw new RuntimeException('Compra nÃ£o encontrada.');
+            throw new RuntimeException('Compra não encontrada.');
         }
 
         $stmt = $pdo->prepare('
@@ -180,7 +180,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
             ]);
         }
 
-        // Compras manuais nÃ£o possuem itens: recupera o valor original.
+        // Compras manuais não possuem itens: recupera o valor original.
         if (count($adjustmentItems) === 0 && !$purchaseCourtesy) {
             $grossTotal = (float) $currentPurchase['total'] + (float) $currentPurchase['discount_amount'];
         }
@@ -229,7 +229,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
 
         error_log('Erro ao atualizar ajustes da compra #' . $purchaseId . ': ' . $error->getMessage());
         http_response_code(500);
-        exit('NÃ£o foi possÃ­vel atualizar desconto ou cortesia. Nenhuma alteraÃ§Ã£o foi mantida.');
+        exit('Não foi possível atualizar desconto ou cortesia. Nenhuma alteração foi mantida.');
     }
 }
 
@@ -260,6 +260,7 @@ $stmt = $pdo->prepare("
         pay.amount AS payment_amount,
         pay.fee_percent AS payment_fee_percent,
         pay.fee_amount AS payment_fee_amount,
+        pay.tip_amount AS payment_tip_amount,
         pay.total AS payment_total,
 
         (
@@ -1511,9 +1512,24 @@ $items =
                         </strong>
                     </div>
 
+                    <?php if ((float) $purchase['payment_tip_amount'] > 0): ?>
+                        <div>
+                            <span>Gorjeta</span>
+                            <strong>
+                                R$
+                                <?= number_format(
+                                    $purchase['payment_tip_amount'],
+                                    2,
+                                    ',',
+                                    '.'
+                                ) ?>
+                            </strong>
+                        </div>
+                    <?php endif; ?>
+
 
                     <div class="payment-details-total">
-                        <span>Total cobrado</span>
+                        <span>Total recebido</span>
                         <strong>
                             R$
                             <?= number_format(
@@ -1617,7 +1633,7 @@ if (paymentButton) {
     );
 
 
-    async function registerPayment(paymentMethod) {
+    async function registerPayment(paymentMethod, receivedTotal) {
 
             paymentButton.disabled = true;
 
@@ -1647,7 +1663,10 @@ if (paymentButton) {
                                     <?= (int) $purchase['id'] ?>,
 
                                 payment_method:
-                                    paymentMethod
+                                    paymentMethod,
+
+                                received_total:
+                                    receivedTotal
 
                             })
                         }

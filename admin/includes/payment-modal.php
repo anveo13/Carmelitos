@@ -164,6 +164,36 @@ $paymentModalPercents =
         color: #02511F;
     }
 
+    .payment-modal-received {
+        margin: 0 0 16px;
+    }
+
+    .payment-modal-received input {
+        width: 100%;
+        height: 48px;
+        box-sizing: border-box;
+        padding: 0 13px;
+        border: 1px solid #d9e0dc;
+        border-radius: 10px;
+        font-size: 16px;
+    }
+
+    .payment-modal-received input:focus {
+        outline: 0;
+        border-color: #02511F;
+    }
+
+    .payment-modal-received small {
+        display: block;
+        margin-top: 6px;
+        color: #75827a;
+        font-size: 12px;
+    }
+
+    .payment-modal-received .payment-modal-error {
+        color: #b33f3f;
+    }
+
     .payment-modal-actions {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -273,6 +303,21 @@ $paymentModalPercents =
         </div>
 
 
+        <div class="payment-modal-received">
+            <div class="payment-modal-label">Valor recebido</div>
+            <input
+                type="text"
+                id="paymentModalReceived"
+                inputmode="decimal"
+                autocomplete="off"
+                disabled
+            >
+            <small id="paymentModalReceivedHelp">
+                Se receber um valor maior, a diferença será registrada como gorjeta.
+            </small>
+        </div>
+
+
         <div class="payment-modal-summary">
 
             <div>
@@ -347,6 +392,10 @@ let paymentModalCallback = null;
 
 let paymentModalBusy = false;
 
+let paymentModalRequiredTotal = 0;
+
+let paymentModalReceivedWasEdited = false;
+
 
 function paymentFormatMoney(value) {
 
@@ -398,6 +447,27 @@ function paymentModalSelectedMethod() {
 }
 
 
+function paymentParseMoney(value) {
+
+    const raw = String(value || '').trim();
+
+    if (!raw) {
+        return null;
+    }
+
+    const normalized = raw.includes(',')
+        ? raw.replace(/\./g, '').replace(',', '.')
+        : raw;
+
+    const amount = Number(normalized);
+
+    return Number.isFinite(amount)
+        ? Math.round(amount * 100) / 100
+        : null;
+
+}
+
+
 function paymentModalUpdate() {
 
     const method =
@@ -409,6 +479,15 @@ function paymentModalUpdate() {
 
 
     if (!method) {
+
+        paymentModalRequiredTotal = 0;
+
+        const receivedInput = document.getElementById('paymentModalReceived');
+        receivedInput.value = '';
+        receivedInput.disabled = true;
+
+        document.getElementById('paymentModalReceivedHelp').textContent =
+            'Selecione uma forma de pagamento para calcular o mínimo.';
 
         document.getElementById('paymentModalFeeLabel').textContent =
             'Juros';
@@ -446,13 +525,48 @@ function paymentModalUpdate() {
             ? paymentFormatMoney(fee)
             : 'Sem juros';
 
-    document.getElementById('paymentModalTotal').textContent =
-        paymentFormatMoney(
-            paymentModalAmount + fee
-        );
+    paymentModalRequiredTotal = Math.round(
+        (paymentModalAmount + fee) * 100
+    ) / 100;
 
-    paymentModalConfirm.disabled =
-        paymentModalBusy;
+    document.getElementById('paymentModalTotal').textContent =
+        paymentFormatMoney(paymentModalRequiredTotal);
+
+    const receivedInput = document.getElementById('paymentModalReceived');
+    const receivedHelp = document.getElementById('paymentModalReceivedHelp');
+    const currentReceived = paymentParseMoney(receivedInput.value);
+
+    receivedInput.disabled = false;
+
+    if (
+        !paymentModalReceivedWasEdited ||
+        currentReceived === null
+    ) {
+        receivedInput.value = paymentModalRequiredTotal.toFixed(2).replace('.', ',');
+    }
+
+    const received = paymentParseMoney(receivedInput.value);
+    const valid = received !== null && received >= paymentModalRequiredTotal;
+    const tip = valid
+        ? Math.round((received - paymentModalRequiredTotal) * 100) / 100
+        : 0;
+
+    if (!valid) {
+        receivedHelp.textContent =
+            'O valor recebido não pode ser menor que ' +
+            paymentFormatMoney(paymentModalRequiredTotal) + '.';
+        receivedHelp.classList.add('payment-modal-error');
+    } else if (tip > 0) {
+        receivedHelp.textContent =
+            'Gorjeta: ' + paymentFormatMoney(tip) + '.';
+        receivedHelp.classList.remove('payment-modal-error');
+    } else {
+        receivedHelp.textContent =
+            'Mínimo calculado: ' + paymentFormatMoney(paymentModalRequiredTotal) + '.';
+        receivedHelp.classList.remove('payment-modal-error');
+    }
+
+    paymentModalConfirm.disabled = paymentModalBusy || !valid;
 
 }
 
@@ -464,6 +578,8 @@ function openPaymentModal(options) {
 
     paymentModalCallback =
         options.onConfirm;
+
+    paymentModalReceivedWasEdited = false;
 
 
     document.getElementById('paymentModalPerson').textContent =
@@ -522,6 +638,17 @@ paymentModal
         );
 
     });
+
+
+document
+    .getElementById('paymentModalReceived')
+    .addEventListener(
+        'input',
+        () => {
+            paymentModalReceivedWasEdited = true;
+            paymentModalUpdate();
+        }
+    );
 
 
 paymentModalCancel.addEventListener(
@@ -592,7 +719,12 @@ paymentModalConfirm.addEventListener(
 
         try {
 
-            await paymentModalCallback(method);
+            await paymentModalCallback(
+                method,
+                paymentParseMoney(
+                    document.getElementById('paymentModalReceived').value
+                )
+            );
 
         } finally {
 
